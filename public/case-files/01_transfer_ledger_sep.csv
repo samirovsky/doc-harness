@@ -1,0 +1,29 @@
+transfer_id,date,posting_period,counterparty,account,amount,currency,status,scope,approval_state,review_state,batch_id,narrative
+TR-841,2025-07-02,2025-07,Aurelian Yard Services,operations,68000,credits,completed,historical,approved,clear,B-0702,July yard services
+TR-842,2025-07-08,2025-07,Blue Veldt Holdings,trade,52000,credits,completed,historical,approved,clear,B-0708,July route settlement
+TR-843,2025-07-12,2025-07,Cinderline Exchange,trade,34000,credits,reversed,historical,approved,reviewed,B-0712,Prior-period reversal
+TR-844,2025-07-19,2025-07,Orison Transit,operations,27000,credits,completed,historical,approved,clear,B-0719,July transit services
+TR-845,2025-07-27,2025-07,Morrow Fuel Union,fuel,41500,credits,completed,historical,approved,clear,B-0727,Fuel supply settlement
+TR-861,2025-08-01,2025-08,Arkanis Freight,operations,93000,credits,completed,historical,approved,clear,B-0801,August freight reserve
+TR-862,2025-08-05,2025-08,Nadir Equipment Pool,capital,44000,credits,completed,historical,approved,clear,B-0805,Scanner maintenance
+TR-863,2025-08-09,2025-08,Blue Veldt Holdings,trade,71000,credits,completed,historical,approved,clear,B-0809,August route settlement
+TR-864,2025-08-12,2025-08,Glass Arc Brokerage,trade,29000,credits,void,historical,rejected,reviewed,B-0812,Voided duplicate instruction
+TR-865,2025-08-17,2025-08,Orison Transit,operations,22500,credits,completed,historical,approved,clear,B-0817,August transit services
+TR-866,2025-08-23,2025-08,Morrow Fuel Union,fuel,46000,credits,completed,historical,approved,clear,B-0823,Fuel supply settlement
+TR-867,2025-08-29,2025-08,Kharon Dockworks,operations,38500,credits,completed,historical,approved,clear,B-0829,Dock preparation
+TR-901,2025-09-03,2025-09,Arkanis Freight,operations,120000,credits,completed,in_scope,approved,clear,B-0903,Posted September freight transfer
+TR-902,2025-09-08,2025-09,Blue Veldt Holdings,trade,85000,credits,completed,in_scope,approved,flagged,B-0908,Posted September route settlement
+TR-903,2025-09-11,2025-09,Cinderline Exchange,trade,45000,credits,reversed,in_scope,approved,flagged,B-0911,September reversal retained in gross activity
+TR-904,2025-09-21,2025-09,Orison Transit,operations,30000,credits,completed,in_scope,approved,clear,B-0921,Posted September transit transfer
+TR-906,2025-09-05,2025-09,North Ring Cooperative,escrow,18000,credits,pending,excluded,pending,clear,B-0905,Unposted escrow instruction
+TR-907,2025-09-10,2025-09,Arkanis Freight,operations,120000,credits,void,excluded,rejected,reviewed,B-0910,Duplicate test instruction voided before posting
+TR-908,2025-09-14,2025-09,Morrow Fuel Union,fuel,26000,credits,pending,excluded,pending,clear,B-0914,October-dated settlement held in queue
+TR-909,2025-09-18,2025-09,Kharon Dockworks,operations,15000,credits,rejected,excluded,rejected,reviewed,B-0918,Incomplete approval chain
+TR-910,2025-09-24,2025-09,South Relay Authority,regulatory,9000,credits,void,excluded,rejected,clear,B-0924,Training transaction removed from production
+TR-911,2025-09-27,2025-09,Glass Arc Brokerage,trade,33000,credits,pending,excluded,pending,flagged,B-0927,Compliance hold not posted
+TR-921,2025-10-02,2025-10,Arkanis Freight,operations,97000,credits,completed,future_period,approved,clear,B-1002,October freight transfer
+TR-922,2025-10-06,2025-10,Nadir Equipment Pool,capital,21000,credits,completed,future_period,approved,clear,B-1006,October maintenance settlement
+TR-923,2025-10-13,2025-10,Blue Veldt Holdings,trade,64000,credits,completed,future_period,approved,clear,B-1013,October route settlement
+TR-924,2025-10-18,2025-10,Orison Transit,operations,28500,credits,completed,future_period,approved,clear,B-1018,October transit services
+TR-925,2025-10-25,2025-10,Cinderline Exchange,trade,19000,credits,reversed,future_period,approved,reviewed,B-1025,October reversal
+TR-990,2025-09-30,2025-09,Internal Controls,control,0,credits,memo,excluded,approved,clear,B-0930,External receipt TR-905 is maintained outside this ledger export

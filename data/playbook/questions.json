@@ -1,0 +1,305 @@
+{
+  "caseId": "practice-case",
+  "questions": [
+    {
+      "questionId": "q_001",
+      "question": "What is the organization's current registered name?",
+      "answerType": "text",
+      "canonicalFormat": "lowercase text"
+    },
+    {
+      "questionId": "q_002",
+      "question": "Who is the current operational commander?",
+      "answerType": "text",
+      "canonicalFormat": "lowercase text"
+    },
+    {
+      "questionId": "q_003",
+      "question": "What is the warehouse operational color code?",
+      "answerType": "text",
+      "canonicalFormat": "lowercase text"
+    },
+    {
+      "questionId": "q_004",
+      "question": "What is the current severity assigned to the September security incident?",
+      "answerType": "text",
+      "canonicalFormat": "lowercase text"
+    },
+    {
+      "questionId": "q_005",
+      "question": "What is the current overall risk level?",
+      "answerType": "text",
+      "canonicalFormat": "lowercase text"
+    },
+    {
+      "questionId": "q_006",
+      "question": "On what date did the current command appointment become effective?",
+      "answerType": "date",
+      "canonicalFormat": "YYYY-MM-DD"
+    },
+    {
+      "questionId": "q_007",
+      "question": "On what date did the supplier contract begin?",
+      "answerType": "date",
+      "canonicalFormat": "YYYY-MM-DD"
+    },
+    {
+      "questionId": "q_008",
+      "question": "What was the date of the most recent security incident?",
+      "answerType": "date",
+      "canonicalFormat": "YYYY-MM-DD"
+    },
+    {
+      "questionId": "q_009",
+      "question": "Was the unidentified person behind the compromised badge left-handed?",
+      "answerType": "boolean",
+      "canonicalFormat": "JSON true or false; null if unsupported"
+    },
+    {
+      "questionId": "q_010",
+      "question": "On what date did the current insurance coverage begin?",
+      "answerType": "date",
+      "canonicalFormat": "YYYY-MM-DD"
+    },
+    {
+      "questionId": "q_011",
+      "question": "What is the acquisition date of the newest active asset?",
+      "answerType": "date",
+      "canonicalFormat": "YYYY-MM-DD"
+    },
+    {
+      "questionId": "q_012",
+      "question": "What was the gross value of all September transfers, including the confirmed receipt?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_013",
+      "question": "What amount was reversed in September?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_014",
+      "question": "What was the net value of September transfers after the reversal and confirmed receipt?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_015",
+      "question": "How many September transfers were completed or confirmed?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_016",
+      "question": "How many crates were declared for the quarter?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_017",
+      "question": "How many crates were delivered after including the manual Bay C delivery?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_018",
+      "question": "How many crates were lost in total during the quarter?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_019",
+      "question": "Was the supplier's lead negotiator born in the Core Worlds?",
+      "answerType": "boolean",
+      "canonicalFormat": "JSON true or false; null if unsupported"
+    },
+    {
+      "questionId": "q_020",
+      "question": "What is the difference between declared and delivered crates?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_021",
+      "question": "How many people are currently active after the latest personnel changes?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_022",
+      "question": "What is the current monthly payroll after the latest personnel changes?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_023",
+      "question": "How many people are currently suspended?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_024",
+      "question": "How many contractors are listed on the roster?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_025",
+      "question": "How many assets are currently active?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_026",
+      "question": "What is the total acquisition cost of the active assets?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_027",
+      "question": "What is the current accumulated depreciation of active assets after audit adjustment?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_028",
+      "question": "What is the current net book value of active assets after audit adjustment?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_029",
+      "question": "Was the final Q4 2025 operating margin positive?",
+      "answerType": "boolean",
+      "canonicalFormat": "JSON true or false; null if unsupported"
+    },
+    {
+      "questionId": "q_030",
+      "question": "What is the current total value of the supplier contract?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_031",
+      "question": "What is the current amount of each supplier installment?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_032",
+      "question": "How many installments are in the supplier payment schedule?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_033",
+      "question": "How many unique compromised badges are identified across the evidence?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_034",
+      "question": "What is the total financial exposure from the September incident and its follow-up?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_035",
+      "question": "What is the insurance coverage limit?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_036",
+      "question": "What is the current insurance deductible?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_037",
+      "question": "What is the annual insurance premium?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_038",
+      "question": "What is the final reported Q3 revenue?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_039",
+      "question": "Did active headcount exceed 20 on 2025-10-31?",
+      "answerType": "boolean",
+      "canonicalFormat": "JSON true or false; null if unsupported"
+    },
+    {
+      "questionId": "q_040",
+      "question": "What are the reported Q3 operating costs?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_041",
+      "question": "What is the final Q3 operating margin?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_042",
+      "question": "What is the reported cash reserve?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_043",
+      "question": "What is the unexplained ledger variance?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_044",
+      "question": "What is the current sanctions exposure?",
+      "answerType": "number",
+      "canonicalFormat": "raw number without units or separators"
+    },
+    {
+      "questionId": "q_045",
+      "question": "Was any September transfer reversed?",
+      "answerType": "boolean",
+      "canonicalFormat": "JSON true or false"
+    },
+    {
+      "questionId": "q_046",
+      "question": "Did the number of delivered crates equal the number declared?",
+      "answerType": "boolean",
+      "canonicalFormat": "JSON true or false"
+    },
+    {
+      "questionId": "q_047",
+      "question": "Is Mira Venn the current operational commander?",
+      "answerType": "boolean",
+      "canonicalFormat": "JSON true or false"
+    },
+    {
+      "questionId": "q_048",
+      "question": "Is the current insurance deductible below 60000?",
+      "answerType": "boolean",
+      "canonicalFormat": "JSON true or false"
+    },
+    {
+      "questionId": "q_049",
+      "question": "Was sanctions exposure zero on 2025-10-31?",
+      "answerType": "boolean",
+      "canonicalFormat": "JSON true or false; null if unsupported"
+    },
+    {
+      "questionId": "q_050",
+      "question": "Were all active assets acquired before September 2025?",
+      "answerType": "boolean",
+      "canonicalFormat": "JSON true or false"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+event_id,timestamp,badge_id,zone,terminal_id,action,result,auth_method,device_trust,alert,review_state,analyst_note
+AE-661,2025-09-20T06:12:00Z,B-031,West Gate,GT-W01,entry,granted,badge+pin,trusted,false,closed,Routine day shift
+AE-662,2025-09-20T06:18:00Z,B-044,West Gate,GT-W01,entry,granted,badge+pin,trusted,false,closed,Routine day shift
+AE-663,2025-09-20T07:03:00Z,B-052,Cargo Control,CC-04,console_login,granted,badge+passkey,trusted,false,closed,Routine operations
+AE-664,2025-09-20T11:42:00Z,B-087,Ledger Vault,LV-02,document_view,granted,badge+passkey,trusted,false,closed,Authorized review
+AE-665,2025-09-21T05:57:00Z,B-031,West Gate,GT-W01,entry,granted,badge+pin,trusted,false,closed,Routine day shift
+AE-666,2025-09-21T06:14:00Z,B-109,Cargo Control,CC-02,console_login,granted,badge+passkey,trusted,false,closed,Authorized before incident window
+AE-667,2025-09-21T12:21:00Z,B-052,Bay A,BA-07,inventory_scan,granted,badge,trusted,false,closed,Routine scan
+AE-668,2025-09-22T08:08:00Z,B-071,Finance Office,FO-03,entry,granted,badge+pin,trusted,false,closed,Routine finance access
+AE-669,2025-09-22T09:36:00Z,B-087,Ledger Vault,LV-02,document_view,granted,badge+passkey,trusted,false,closed,Authorized review
+AE-670,2025-09-22T17:50:00Z,B-044,West Gate,GT-W01,exit,granted,badge,trusted,false,closed,Routine exit
+AE-671,2025-09-23T06:02:00Z,B-031,West Gate,GT-W01,entry,granted,badge+pin,trusted,false,closed,Routine day shift
+AE-672,2025-09-23T10:15:00Z,B-052,Cargo Control,CC-04,manifest_export,granted,badge+passkey,trusted,false,closed,Approved export
+AE-673,2025-09-23T13:44:00Z,B-071,Finance Office,FO-03,ledger_view,granted,badge+passkey,trusted,false,closed,Approved review
+AE-674,2025-09-24T06:25:00Z,B-044,Bay C,BC-02,inventory_scan,granted,badge,trusted,false,closed,Receiving shift
+AE-675,2025-09-24T09:11:00Z,B-087,Ledger Vault,LV-01,document_view,granted,badge+passkey,trusted,false,closed,Approved review
+AE-676,2025-09-24T18:06:00Z,B-052,West Gate,GT-W02,exit,granted,badge,trusted,false,closed,Routine exit
+AE-677,2025-09-25T05:59:00Z,B-031,West Gate,GT-W01,entry,granted,badge+pin,trusted,false,closed,Routine day shift
+AE-678,2025-09-25T11:03:00Z,B-071,Finance Office,FO-03,ledger_export,granted,badge+passkey,trusted,false,closed,Approved export
+AE-679,2025-09-25T14:41:00Z,B-109,Cargo Control,CC-02,manifest_view,granted,badge+passkey,trusted,false,closed,Authorized before incident window
+AE-680,2025-09-26T06:09:00Z,B-044,Bay C,BC-02,inventory_scan,granted,badge,trusted,false,closed,Routine receiving
+AE-681,2025-09-26T18:42:00Z,B-087,West Gate,GT-W02,exit,granted,badge,trusted,false,closed,Routine exit
+AE-701,2025-09-26T21:14:00Z,B-109,Ledger Vault,LV-03,entry,denied,badge,untrusted,true,open,Out-of-hours denied access
+AE-702,2025-09-26T21:17:00Z,B-112,Ledger Vault,LV-03,entry,denied,badge,untrusted,true,open,Sequential denied attempt
+AE-703,2025-09-27T00:08:00Z,B-112,Cargo Control,CC-09,console_login,granted,badge,untrusted,true,open,Unmanaged terminal session
+AE-704,2025-09-27T07:32:00Z,B-087,West Gate,GT-W01,entry,granted,badge+pin,trusted,false,closed,Routine shift start
+AE-705,2025-09-27T07:38:00Z,B-031,West Gate,GT-W01,entry,granted,badge+pin,trusted,false,closed,Routine shift start
+AE-706,2025-09-27T08:02:00Z,B-052,Cargo Control,CC-04,console_login,granted,badge+passkey,trusted,false,closed,Incident response team
+AE-707,2025-09-27T08:19:00Z,B-071,Finance Office,FO-03,ledger_lock,granted,badge+passkey,trusted,false,closed,Incident containment
+AE-708,2025-09-27T08:34:00Z,B-044,Bay C,BC-02,inventory_hold,granted,badge,trusted,false,closed,Incident containment
+AE-709,2025-09-27T09:16:00Z,B-109,West Gate,GT-W01,exit,denied,badge,revoked,false,reviewed,Badge revoked after alert; not a new alert
+AE-710,2025-09-27T09:19:00Z,B-112,West Gate,GT-W01,exit,denied,badge,revoked,false,reviewed,Badge revoked after alert; not a new alert
+AE-711,2025-09-28T06:11:00Z,B-031,West Gate,GT-W01,entry,granted,badge+pin,trusted,false,closed,Routine day shift
+AE-712,2025-09-28T10:46:00Z,B-052,Cargo Control,CC-04,manifest_export,granted,badge+passkey,trusted,false,closed,Approved recovery export
+AE-713,2025-09-29T08:26:00Z,B-071,Finance Office,FO-03,ledger_view,granted,badge+passkey,trusted,false,closed,Quarter-close review
+AE-714,2025-09-30T15:58:00Z,B-087,Ledger Vault,LV-02,document_view,granted,badge+passkey,trusted,false,closed,Quarter-close review

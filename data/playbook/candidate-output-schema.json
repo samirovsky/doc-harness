@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Candidate answer output",
+  "description": "The authoritative JSON Schema for the answer payload returned by the candidate implementation.",
+  "type": "object",
+  "required": ["caseId", "estimatedCostUsd", "answers"],
+  "additionalProperties": false,
+  "properties": {
+    "caseId": { "type": "string" },
+    "estimatedCostUsd": { "type": "number", "minimum": 0 },
+    "answers": {
+      "type": "object",
+      "propertyNames": { "pattern": "^q_[A-Za-z0-9_-]+$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["value", "evidenceFileIds"],
+        "additionalProperties": false,
+        "properties": {
+          "value": { "type": ["number", "string", "boolean", "null"] },
+          "evidenceFileIds": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+          }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "value": { "not": { "type": "null" } } } },
+            "then": { "properties": { "evidenceFileIds": { "minItems": 1 } } }
+          }
+        ]
+      }
+    }
+  }
+}

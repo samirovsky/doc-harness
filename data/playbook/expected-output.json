@@ -1,0 +1,315 @@
+{
+  "caseId": "practice-case",
+  "answers": {
+    "q_001": {
+      "value": "kestrel meridian cooperative",
+      "evidenceFileIds": [
+        "04_governance_charter.pdf"
+      ]
+    },
+    "q_002": {
+      "value": "talon rusk",
+      "evidenceFileIds": [
+        "05_amendments_register.pdf"
+      ]
+    },
+    "q_003": {
+      "value": "cobalt",
+      "evidenceFileIds": [
+        "11_warehouse_label.png"
+      ]
+    },
+    "q_004": {
+      "value": "high",
+      "evidenceFileIds": [
+        "10_risk_committee_update.pptx"
+      ]
+    },
+    "q_005": {
+      "value": "elevated",
+      "evidenceFileIds": [
+        "10_risk_committee_update.pptx"
+      ]
+    },
+    "q_006": {
+      "value": "2025-09-18",
+      "evidenceFileIds": [
+        "05_amendments_register.pdf"
+      ]
+    },
+    "q_007": {
+      "value": "2025-06-01",
+      "evidenceFileIds": [
+        "07_contracts_and_coverage.pdf"
+      ]
+    },
+    "q_008": {
+      "value": "2025-09-27",
+      "evidenceFileIds": [
+        "06_security_incident_report.pdf"
+      ]
+    },
+    "q_009": {
+      "value": null,
+      "evidenceFileIds": []
+    },
+    "q_010": {
+      "value": "2025-01-01",
+      "evidenceFileIds": [
+        "07_contracts_and_coverage.pdf"
+      ]
+    },
+    "q_011": {
+      "value": "2025-09-12",
+      "evidenceFileIds": [
+        "14_asset_register.xlsx"
+      ]
+    },
+    "q_012": {
+      "value": 300000,
+      "evidenceFileIds": [
+        "01_transfer_ledger_sep.csv",
+        "12_transfer_receipt.png"
+      ]
+    },
+    "q_013": {
+      "value": 45000,
+      "evidenceFileIds": [
+        "01_transfer_ledger_sep.csv",
+        "13_consolidated_ledger.xlsx"
+      ]
+    },
+    "q_014": {
+      "value": 255000,
+      "evidenceFileIds": [
+        "01_transfer_ledger_sep.csv",
+        "12_transfer_receipt.png"
+      ]
+    },
+    "q_015": {
+      "value": 4,
+      "evidenceFileIds": [
+        "13_consolidated_ledger.xlsx"
+      ]
+    },
+    "q_016": {
+      "value": 480,
+      "evidenceFileIds": [
+        "09_quarterly_operations_brief.pptx"
+      ]
+    },
+    "q_017": {
+      "value": 463,
+      "evidenceFileIds": [
+        "02_cargo_movements.csv",
+        "11_warehouse_label.png"
+      ]
+    },
+    "q_018": {
+      "value": 11,
+      "evidenceFileIds": [
+        "06_security_incident_report.pdf",
+        "09_quarterly_operations_brief.pptx"
+      ]
+    },
+    "q_019": {
+      "value": null,
+      "evidenceFileIds": []
+    },
+    "q_020": {
+      "value": 17,
+      "evidenceFileIds": [
+        "02_cargo_movements.csv",
+        "09_quarterly_operations_brief.pptx",
+        "11_warehouse_label.png"
+      ]
+    },
+    "q_021": {
+      "value": 16,
+      "evidenceFileIds": [
+        "05_amendments_register.pdf",
+        "15_roster_payroll.xlsx"
+      ]
+    },
+    "q_022": {
+      "value": 153500,
+      "evidenceFileIds": [
+        "05_amendments_register.pdf",
+        "15_roster_payroll.xlsx"
+      ]
+    },
+    "q_023": {
+      "value": 1,
+      "evidenceFileIds": [
+        "05_amendments_register.pdf"
+      ]
+    },
+    "q_024": {
+      "value": 3,
+      "evidenceFileIds": [
+        "15_roster_payroll.xlsx"
+      ]
+    },
+    "q_025": {
+      "value": 7,
+      "evidenceFileIds": [
+        "14_asset_register.xlsx"
+      ]
+    },
+    "q_026": {
+      "value": 920000,
+      "evidenceFileIds": [
+        "14_asset_register.xlsx"
+      ]
+    },
+    "q_027": {
+      "value": 255000,
+      "evidenceFileIds": [
+        "08_internal_audit_memo.pdf"
+      ]
+    },
+    "q_028": {
+      "value": 665000,
+      "evidenceFileIds": [
+        "08_internal_audit_memo.pdf",
+        "14_asset_register.xlsx"
+      ]
+    },
+    "q_029": {
+      "value": null,
+      "evidenceFileIds": []
+    },
+    "q_030": {
+      "value": 660000,
+      "evidenceFileIds": [
+        "05_amendments_register.pdf"
+      ]
+    },
+    "q_031": {
+      "value": 110000,
+      "evidenceFileIds": [
+        "05_amendments_register.pdf"
+      ]
+    },
+    "q_032": {
+      "value": 6,
+      "evidenceFileIds": [
+        "05_amendments_register.pdf",
+        "07_contracts_and_coverage.pdf"
+      ]
+    },
+    "q_033": {
+      "value": 3,
+      "evidenceFileIds": [
+        "03_access_events.csv",
+        "06_security_incident_report.pdf"
+      ]
+    },
+    "q_034": {
+      "value": 76000,
+      "evidenceFileIds": [
+        "06_security_incident_report.pdf",
+        "10_risk_committee_update.pptx"
+      ]
+    },
+    "q_035": {
+      "value": 2000000,
+      "evidenceFileIds": [
+        "07_contracts_and_coverage.pdf"
+      ]
+    },
+    "q_036": {
+      "value": 75000,
+      "evidenceFileIds": [
+        "05_amendments_register.pdf"
+      ]
+    },
+    "q_037": {
+      "value": 72000,
+      "evidenceFileIds": [
+        "07_contracts_and_coverage.pdf"
+      ]
+    },
+    "q_038": {
+      "value": 1320000,
+      "evidenceFileIds": [
+        "10_risk_committee_update.pptx"
+      ]
+    },
+    "q_039": {
+      "value": null,
+      "evidenceFileIds": []
+    },
+    "q_040": {
+      "value": 1056000,
+      "evidenceFileIds": [
+        "09_quarterly_operations_brief.pptx"
+      ]
+    },
+    "q_041": {
+      "value": 264000,
+      "evidenceFileIds": [
+        "09_quarterly_operations_brief.pptx",
+        "10_risk_committee_update.pptx"
+      ]
+    },
+    "q_042": {
+      "value": 410000,
+      "evidenceFileIds": [
+        "09_quarterly_operations_brief.pptx",
+        "13_consolidated_ledger.xlsx"
+      ]
+    },
+    "q_043": {
+      "value": 38000,
+      "evidenceFileIds": [
+        "08_internal_audit_memo.pdf",
+        "13_consolidated_ledger.xlsx"
+      ]
+    },
+    "q_044": {
+      "value": 180000,
+      "evidenceFileIds": [
+        "10_risk_committee_update.pptx"
+      ]
+    },
+    "q_045": {
+      "value": true,
+      "evidenceFileIds": [
+        "01_transfer_ledger_sep.csv",
+        "13_consolidated_ledger.xlsx"
+      ]
+    },
+    "q_046": {
+      "value": false,
+      "evidenceFileIds": [
+        "02_cargo_movements.csv",
+        "09_quarterly_operations_brief.pptx",
+        "11_warehouse_label.png"
+      ]
+    },
+    "q_047": {
+      "value": false,
+      "evidenceFileIds": [
+        "04_governance_charter.pdf",
+        "05_amendments_register.pdf"
+      ]
+    },
+    "q_048": {
+      "value": false,
+      "evidenceFileIds": [
+        "05_amendments_register.pdf"
+      ]
+    },
+    "q_049": {
+      "value": null,
+      "evidenceFileIds": []
+    },
+    "q_050": {
+      "value": false,
+      "evidenceFileIds": [
+        "14_asset_register.xlsx"
+      ]
+    }
+  }
+}

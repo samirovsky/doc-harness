@@ -1,0 +1,28 @@
+movement_id,date,quarter,manifest_id,route,carrier,declared_crates,loaded_crates,delivered_crates,status,scope,exception_code,inspection_note
+CM-141,2025-04-03,Q2,MF-041,Bay A to North Ring,Arkanis Freight,96,96,95,received,historical,SHORT-01,Q2 close record
+CM-142,2025-04-11,Q2,MF-042,Bay B to Dune Annex,Blue Veldt Logistics,88,88,88,received,historical,NONE,Q2 close record
+CM-143,2025-04-19,Q2,MF-043,Bay D to East Relay,Orison Transit,102,102,101,received,historical,SHORT-01,Q2 close record
+CM-144,2025-04-27,Q2,MF-044,Bay A to South Relay,Arkanis Freight,90,89,89,received,historical,LOAD-01,Q2 close record
+CM-151,2025-05-05,Q2,MF-051,Bay C to North Ring,Orison Transit,74,74,74,received,historical,NONE,Q2 close record
+CM-152,2025-05-13,Q2,MF-052,Bay B to East Relay,Blue Veldt Logistics,110,110,109,received,historical,SHORT-01,Q2 close record
+CM-153,2025-05-21,Q2,MF-053,Bay D to South Relay,Arkanis Freight,84,84,84,received,historical,NONE,Q2 close record
+CM-161,2025-06-02,Q2,MF-061,Bay A to Dune Annex,Orison Transit,98,98,98,received,historical,NONE,Q2 close record
+CM-162,2025-06-16,Q2,MF-062,Bay C to East Relay,Blue Veldt Logistics,91,91,90,received,historical,SHORT-01,Q2 close record
+CM-163,2025-06-25,Q2,MF-063,Bay B to North Ring,Arkanis Freight,107,107,107,received,historical,NONE,Q2 close record
+CM-201,2025-09-04,Q3,MF-201,Bay A to North Ring,Arkanis Freight,110,110,110,received,in_scope,NONE,Seal intact at receiving
+CM-202,2025-09-09,Q3,MF-202,Bay B to Dune Annex,Blue Veldt Logistics,108,108,108,received,in_scope,NONE,Count confirmed by two inspectors
+CM-203,2025-09-16,Q3,MF-203,Bay D to East Relay,Orison Transit,112,112,112,received,in_scope,NONE,Relay intake complete
+CM-204,2025-09-24,Q3,MF-204,Bay A to South Relay,Arkanis Freight,113,113,113,received,in_scope,NONE,Automated movement export only
+CM-205,2025-09-07,Q3,MF-205,Bay C to North Ring,Orison Transit,32,32,0,cancelled,excluded,CANCELLED,Manifest cancelled before departure
+CM-206,2025-09-12,Q3,MF-206,Bay D to Dune Annex,Blue Veldt Logistics,41,41,0,in_transit,excluded,OPEN,Not received by quarter close
+CM-207,2025-09-18,Q3,MF-207,Bay B to East Relay,Arkanis Freight,27,0,0,void,excluded,TEST,Training manifest removed
+CM-208,2025-09-22,Q3,MF-208,Bay A to North Ring,Orison Transit,22,22,0,returned,excluded,SEAL,Returned to origin before acceptance
+CM-209,2025-09-25,Q3,MF-209,Bay C to South Relay,Blue Veldt Logistics,15,15,0,quarantined,excluded,QA-HOLD,Awaiting inspection after close
+CM-210,2025-09-29,Q3,MF-210,Bay D to North Ring,Arkanis Freight,19,0,0,pending,excluded,OPEN,Planned movement not dispatched
+CM-221,2025-10-03,Q4,MF-221,Bay A to East Relay,Arkanis Freight,117,117,117,received,future_period,NONE,Q4 movement
+CM-222,2025-10-09,Q4,MF-222,Bay B to South Relay,Blue Veldt Logistics,103,103,102,received,future_period,SHORT-01,Q4 movement
+CM-223,2025-10-15,Q4,MF-223,Bay C to Dune Annex,Orison Transit,94,94,94,received,future_period,NONE,Q4 movement
+CM-224,2025-10-20,Q4,MF-224,Bay D to North Ring,Arkanis Freight,106,106,106,received,future_period,NONE,Q4 movement
+CM-225,2025-10-26,Q4,MF-225,Bay A to South Relay,Blue Veldt Logistics,89,89,89,received,future_period,NONE,Q4 movement
+CM-290,2025-09-30,Q3,MF-MANUAL,Bay C receiving,Manual intake,20,20,0,external_record,excluded,IMAGE-SOURCE,Delivered count retained on warehouse label image
+CM-291,2025-09-30,Q3,MF-CONTROL,Quarter close control,Internal Controls,480,0,0,memo,excluded,CONTROL,Quarter declared plan retained in operations brief
