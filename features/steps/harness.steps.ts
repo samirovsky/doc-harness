@@ -110,13 +110,6 @@ Given(
   },
 );
 
-Given(
-  /^a model that answers "([^"]+)" with "([^"]*)" citing "([^"]*)"$/,
-  function (this: HarnessWorld, questionId: string, value: string, evidence: string) {
-    this.fake.answers.set(questionId, { value, evidence: splitIds(evidence) });
-  },
-);
-
 Given("a model whose calls always fail", function (this: HarnessWorld) {
   this.fake.failAll = true;
 });

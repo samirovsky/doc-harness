@@ -57,7 +57,8 @@ Then(
 
 Then(
   "no module in {string} or {string} uses {string}, {string} or {string}",
-  async function (first: string, second: string, ...needles: string[]) {
+  async function (first: string, second: string, needleA: string, needleB: string, needleC: string) {
+    const needles = [needleA, needleB, needleC];
     for (const file of [...(await sourceFiles(first)), ...(await sourceFiles(second))]) {
       const source = await readFile(file, "utf8");
       for (const needle of needles) {
