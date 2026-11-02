@@ -39,3 +39,15 @@ Feature: Authority triage and dossier building
     When the harness answers the playbook
     Then every answer prompt dossier is within 1500 tokens
     And the answer prompt for "q_zebra" contains "zebra quota 512"
+
+  Scenario: A triage that archives nothing for an over-budget corpus gets one retry
+    Given a data room of 40 filler documents and one document "needle.csv" containing "zebra quota 512"
+    And a playbook with questions:
+      | questionId | answerType | question                          |
+      | q_zebra    | number     | What is the zebra quota?          |
+    And a dossier token budget of 1500
+    And a model whose first triage archives nothing but later triages archive "filler_00.pdf"
+    And a model that answers every question with a plausible value
+    When the harness answers the playbook
+    Then the model was asked to triage 2 times
+    And the document "filler_00.pdf" was triaged as archive

@@ -26,6 +26,8 @@ export class FakeModel implements LlmGateway {
   readonly requests: LlmRequest[] = [];
   answers = new Map<string, ScriptedAnswer>();
   triageRoles = new Map<string, "core" | "reference" | "archive">();
+  /** When true, the first triage call archives nothing (simulates an implausible triage). */
+  firstTriageEmpty = false;
   agentBehaviors = new Map<string, AgentBehavior>();
   defaultAgent: AgentBehavior = { kind: "fail" };
   failAll = false;
@@ -78,7 +80,8 @@ export class FakeModel implements LlmGateway {
 
   private triagePayload(request: LlmRequest) {
     const fileIds = (request.meta?.fileIds as string[]) ?? [];
-    const withRole = (role: string) => fileIds.filter((fileId) => this.triageRoles.get(fileId) === role);
+    const empty = this.firstTriageEmpty && this.requestsFor("triage").length === 1;
+    const withRole = (role: string) => (empty ? [] : fileIds.filter((fileId) => this.triageRoles.get(fileId) === role));
     return {
       caseContext: { subject: "test subject", asOfDate: null },
       archive: withRole("archive"),

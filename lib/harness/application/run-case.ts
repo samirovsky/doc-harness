@@ -103,10 +103,20 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
     }
 
     // 2. Authority triage (fail-open).
-    const triage: TriageResult = config.triage
+    let triage: TriageResult = config.triage
       ? await triageDocuments(corpus, gateway, { reasoning: "off", temperature: config.temperature, logger, signal })
       : { ok: true, roles: new Map(corpus.documents.map((document) => [document.fileId, "core" as DocumentRole])), reasons: new Map(), context: { subject: null, asOfDate: null } };
-    const plan: DossierPlan = planDossier(corpus, triage, config.dossierTokenBudget, config.retrievalChunkTokens);
+    let plan: DossierPlan = planDossier(corpus, triage, config.dossierTokenBudget, config.retrievalChunkTokens);
+    // Plausibility check: a triage that archives nothing while the corpus overflows the prompt
+    // budget is retried once (cheap, compact output); the retry wins if it succeeds.
+    if (config.triage && triage.ok && plan.mode === "retrieval" && ![...triage.roles.values()].includes("archive")) {
+      logger.warn("triage archived nothing for an over-budget corpus; retrying once");
+      const retry = await triageDocuments(corpus, gateway, { reasoning: "off", temperature: config.temperature, logger, signal });
+      if (retry.ok) {
+        triage = retry;
+        plan = planDossier(corpus, triage, config.dossierTokenBudget, config.retrievalChunkTokens);
+      }
+    }
     logger.info(`dossier: ${plan.mode}, ${plan.included.length}/${corpus.documents.length} documents${plan.fullTokens ? `, ~${plan.fullTokens} tokens` : ""}`);
 
     // 3. Batched answering, all batches in parallel: pass 1 (authoritative) and,

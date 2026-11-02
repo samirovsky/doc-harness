@@ -155,6 +155,22 @@ Given("a model whose triage calls fail", function (this: HarnessWorld) {
   this.fake.failTriage = true;
 });
 
+Given(
+  "a model whose first triage archives nothing but later triages archive {string}",
+  function (this: HarnessWorld, fileId: string) {
+    this.fake.firstTriageEmpty = true;
+    this.fake.triageRoles.set(fileId, "archive");
+  },
+);
+
+Then("the model was asked to triage {int} times", function (this: HarnessWorld, count: number) {
+  assert.equal(this.fake.requestsFor("triage").length, count);
+});
+
+Then("the document {string} was triaged as archive", function (this: HarnessWorld, fileId: string) {
+  assert.equal(this.trace!.triage.roles[fileId], "archive");
+});
+
 Given("a model that triages {string} as archive", function (this: HarnessWorld, fileId: string) {
   this.fake.triageRoles.set(fileId, "archive");
 });
