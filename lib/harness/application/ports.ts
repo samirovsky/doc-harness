@@ -27,7 +27,7 @@ export interface ToolSpec {
   parameters: Record<string, unknown>;
 }
 
-export type Purpose = "triage" | "answer" | "agent" | "vision";
+export type Purpose = "triage" | "answer" | "consistency" | "verify" | "agent" | "vision";
 export type ReasoningEffort = "off" | "low" | "medium" | "high";
 
 export interface LlmRequest {

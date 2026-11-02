@@ -123,3 +123,15 @@ describe("CostLedger", () => {
     assert.equal(ledger.entries[1].estimated, true);
   });
 });
+
+describe("question references in calc", () => {
+  it("resolves known ids longest-first, with or without spaces, and refuses unknown ids", async () => {
+    const { evaluateWithReferences, expressionReferences } = await import("@/lib/harness/domain/arithmetic");
+    const ids = ["q_1", "q_12", "q-a", "q_gross", "q_rev"];
+    assert.deepEqual(expressionReferences("q_gross-q_rev", ids).sort(), ["q_gross", "q_rev"]);
+    assert.deepEqual(expressionReferences("q_12 + q_1", ids).sort(), ["q_1", "q_12"]);
+    const values = new Map([["q_gross", 430], ["q_rev", -250]]);
+    assert.equal(evaluateWithReferences("q_gross-q_rev", values), 680);
+    assert.throws(() => evaluateWithReferences("q_gross - q_missing", values), ArithmeticError);
+  });
+});

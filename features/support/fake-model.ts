@@ -33,6 +33,11 @@ export class FakeModel implements LlmGateway {
   costPerCall: number | null = null;
   /** Per-call latency of answer calls, in call order (last value repeats). */
   answerDelaysMs: number[] = [];
+  /** Second-pass (self-consistency) overrides and latency. */
+  secondPassAnswers = new Map<string, ScriptedAnswer>();
+  secondPassDelayMs = 0;
+  /** Adjudication verdicts; unscripted adjudications fail. */
+  adjudications = new Map<string, ScriptedAnswer>();
 
   async complete(request: LlmRequest, signal?: AbortSignal): Promise<LlmResponse> {
     this.requests.push(request);
@@ -41,12 +46,21 @@ export class FakeModel implements LlmGateway {
       const index = this.requestsFor("answer").length - 1;
       await delay(this.answerDelaysMs[Math.min(index, this.answerDelaysMs.length - 1)], signal);
     }
+    if (request.purpose === "consistency" && this.secondPassDelayMs > 0) await delay(this.secondPassDelayMs, signal);
     switch (request.purpose) {
       case "triage":
         if (this.failTriage) throw new Error("scripted triage failure");
         return this.reply(JSON.stringify(this.triagePayload(request)));
       case "answer":
-        return this.reply(JSON.stringify(this.answerPayload(request)));
+        return this.reply(JSON.stringify(this.answerPayload(request, this.answers)));
+      case "verify": {
+        const questions = (request.meta?.questions as { questionId: string }[]) ?? [];
+        const verdict = this.adjudications.get(questions[0]?.questionId ?? "");
+        if (!verdict) throw new Error("scripted adjudication failure");
+        return this.reply(JSON.stringify(this.answerPayload(request, new Map([[questions[0].questionId, verdict]]))));
+      }
+      case "consistency":
+        return this.reply(JSON.stringify(this.answerPayload(request, new Map([...this.answers, ...this.secondPassAnswers]))));
       case "agent":
         return this.agentReply(request);
       default:
@@ -72,13 +86,13 @@ export class FakeModel implements LlmGateway {
     };
   }
 
-  private answerPayload(request: LlmRequest) {
+  private answerPayload(request: LlmRequest, answers: Map<string, ScriptedAnswer>) {
     const questions =
       (request.meta?.questions as { questionId: string; answerType: string }[]) ?? [];
     const firstFile = ((request.meta?.dossierFileIds as string[]) ?? [])[0];
     return {
       answers: questions.map(({ questionId, answerType }) => {
-        const scripted = this.answers.get(questionId);
+        const scripted = answers.get(questionId);
         if (scripted) {
           return {
             questionId,

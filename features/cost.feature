@@ -11,6 +11,7 @@ Feature: Cost accounting
   Scenario: Provider-reported cost is summed across all calls
     Given a playbook of 12 number questions
     And an answer batch size of 6
+    And a single answer pass
     And a model that reports a cost of 0.001 USD per call
     And a model that answers every question with a plausible value
     When the harness answers the playbook

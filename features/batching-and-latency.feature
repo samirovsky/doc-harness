@@ -31,6 +31,7 @@ Feature: Topic-coherent batching and tail-latency control
       | notes.pdf | Nothing relevant. |
     And a playbook of 6 number questions
     And an answer batch size of 6
+    And a single answer pass
     And a model whose first answer call takes 2000 ms and later calls take 10 ms
     And a model that reports a cost of 0.001 USD per call
     And answer calls are hedged after 100 ms
@@ -45,6 +46,7 @@ Feature: Topic-coherent batching and tail-latency control
       | notes.pdf | Nothing relevant. |
     And a playbook of 6 number questions
     And an answer batch size of 6
+    And a single answer pass
     And a model whose first answer call takes 2000 ms and later calls take 10 ms
     And answer calls are hedged after 100 ms with reasoning "off"
     When the harness answers the playbook
@@ -57,6 +59,7 @@ Feature: Topic-coherent batching and tail-latency control
       | notes.pdf | Nothing relevant. |
     And a playbook of 6 number questions
     And an answer batch size of 6
+    And a single answer pass
     And a model whose answer calls take 3000 ms, 3000 ms, then 10 ms
     And answer calls are hedged after 100 ms
     When the harness answers the playbook

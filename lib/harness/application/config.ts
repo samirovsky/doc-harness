@@ -14,6 +14,14 @@ export interface HarnessConfig {
   triage: boolean;
   answerReasoning: ReasoningEffort;
   answerMaxTokens: number;
+  /** Run an independent second answer pass and escalate disagreements. */
+  consistency: boolean;
+  /** Sampling temperature of the second pass (diversity vs. pass 1). */
+  consistencyTemperature: number;
+  /** How long to wait for unfinished second-pass batches once pass 1 is done. */
+  consistencyGraceMs: number;
+  /** Wall-clock budget for settling disagreements (one adjudication call each). */
+  adjudicationBudgetMs: number;
   /** Escalate flagged answers to the tool-using agent. */
   escalation: boolean;
   /** First-pass confidence under which an answer is escalated. */
@@ -40,12 +48,16 @@ export interface HarnessConfig {
 
 export const defaultConfig: HarnessConfig = {
   batchSize: 6,
-  concurrency: 10,
+  concurrency: 20,
   dossierTokenBudget: 60_000,
   retrievalChunkTokens: 350,
   triage: true,
   answerReasoning: "low",
   answerMaxTokens: 8_000,
+  consistency: true,
+  consistencyTemperature: 0.7,
+  consistencyGraceMs: 5_000,
+  adjudicationBudgetMs: 40_000,
   escalation: true,
   escalationConfidence: 0.5,
   maxEscalations: 12,

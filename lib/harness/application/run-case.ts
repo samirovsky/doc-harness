@@ -6,13 +6,15 @@ import { documentCatalog, runAgent } from "./agent";
 import { createAgentToolbox } from "./agent-tools";
 import { resolveConfig, type HarnessConfig } from "./config";
 import { dossierForBatch, planDossier, type DossierPlan } from "./dossier";
-import { extractJsonObject } from "./json";
+import { parseBatchAnswers } from "./batch-answers";
+import { adjudicate } from "./adjudicate";
+import { expressionReferences, hasReferences } from "../domain/arithmetic";
 import { batchQuestions } from "./batching";
 import { HedgingGateway } from "./hedging-gateway";
 import { createLimiter, MeteredGateway } from "./metered-gateway";
-import { silentLogger, type LlmGateway, type Logger } from "./ports";
+import { silentLogger, type LlmGateway, type LlmUsage, type Logger } from "./ports";
 import { answerSystemPrompt, answerUserPrompt, type CaseContext } from "./prompts";
-import { isPublishable, needsEscalation, reconcile, type Candidate, type Flag, type RawAnswer } from "./reconcile";
+import { applyDerivations, isPublishable, needsEscalation, reconcile, type Candidate, type Flag, type RawAnswer } from "./reconcile";
 import { triageDocuments, type DocumentRole, type TriageResult } from "./triage";
 import { transcribeWeakImages } from "./vision";
 
@@ -26,6 +28,8 @@ export interface RunCaseDependencies {
 }
 
 export interface BatchTrace {
+  /** 1 = authoritative pass, 2 = self-consistency pass. */
+  pass: 1 | 2;
   questionIds: string[];
   mode: "full" | "retrieval";
   dossierTokens: number;
@@ -36,12 +40,13 @@ export interface BatchTrace {
   finishReason?: string;
   provider?: string;
   completionTokens?: number;
+  usage?: LlmUsage;
   /** Raw model output (truncated) for post-run inspection. */
   rawContent?: string;
 }
 
 export interface AnswerTrace {
-  source: "first_pass" | "agent" | "fallback_first_pass" | "unanswered";
+  source: "first_pass" | "derivation" | "adjudication" | "agent" | "fallback_first_pass" | "unanswered";
   flags: Flag[];
   rationale: string;
   calc: string | null;
@@ -53,7 +58,9 @@ export interface RunTrace {
   triage: { ok: boolean; roles: Record<string, DocumentRole>; context: CaseContext; error?: string };
   visionTranscribed: string[];
   batches: BatchTrace[];
+  consistency: { enabled: boolean; completedBatches: number; abandonedBatches: number; disagreements: string[]; resolvedByDerivation: string[] };
   flags: Record<string, Flag[]>;
+  adjudicated: string[];
   escalated: string[];
   agentCalls: Record<string, number>;
   answers: Record<string, AnswerTrace>;
@@ -62,25 +69,7 @@ export interface RunTrace {
   durationMs: number;
 }
 
-const ESCALATION_PRIORITY: Flag[] = ["missing", "invalid_value", "calc_mismatch", "no_evidence", "low_confidence"];
-
-function parseBatchAnswers(content: string, batch: Question[]): Map<string, RawAnswer> {
-  const parsed = extractJsonObject(content) as { answers?: unknown } & Record<string, unknown>;
-  let entries: RawAnswer[] = [];
-  if (Array.isArray(parsed.answers)) entries = parsed.answers as RawAnswer[];
-  else if (parsed.answers && typeof parsed.answers === "object") {
-    entries = Object.entries(parsed.answers as Record<string, Omit<RawAnswer, "questionId">>).map(([questionId, answer]) => ({ ...answer, questionId }));
-  }
-  const ids = new Set(batch.map((question) => question.questionId));
-  const result = new Map<string, RawAnswer>();
-  entries.forEach((entry, position) => {
-    if (!entry || typeof entry !== "object") return;
-    const id = ids.has(String(entry.questionId)) ? String(entry.questionId) : entries.length === batch.length ? batch[position].questionId : null;
-    if (id && !result.has(id)) result.set(id, { ...entry, questionId: id });
-  });
-  if (result.size === 0) throw new Error("no answers in model response");
-  return result;
-}
+const ESCALATION_PRIORITY: Flag[] = ["missing", "invalid_value", "disagreement", "calc_mismatch", "no_evidence", "low_confidence"];
 
 /**
  * Orchestrates one run: (vision fallback) → authority triage → dossier plan →
@@ -96,7 +85,7 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
   const hedging = new HedgingGateway(dependencies.gateway, ledger, {
     afterMs: config.hedgeAfterMs,
     maxHedges: config.maxHedges,
-    purposes: ["triage", "answer", "agent", "vision"],
+    purposes: ["triage", "answer", "verify", "agent", "vision"],
     adapt: config.hedgeReasoning ? (request) => ({ ...request, reasoning: config.hedgeReasoning! }) : undefined,
   });
   const gateway = new MeteredGateway(hedging, ledger);
@@ -120,65 +109,127 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
     const plan: DossierPlan = planDossier(corpus, triage, config.dossierTokenBudget, config.retrievalChunkTokens);
     logger.info(`dossier: ${plan.mode}, ${plan.included.length}/${corpus.documents.length} documents${plan.fullTokens ? `, ~${plan.fullTokens} tokens` : ""}`);
 
-    // 3. Batched first pass, all batches in parallel.
+    // 3. Batched answering, all batches in parallel: pass 1 (authoritative) and,
+    //    for self-consistency, an independent pass 2 bounded by a grace period.
     const questions = input.questions;
-    const raw = new Map<string, RawAnswer>();
+    const groups = batchQuestions(questions, config.batchSize);
     const batches: BatchTrace[] = [];
-    await Promise.all(
-      batchQuestions(questions, config.batchSize).map((batch) =>
-        limit(async () => {
-          const batchStartedAt = now();
-          const dossier = dossierForBatch(plan, batch);
-          const trace: BatchTrace = { questionIds: batch.map((q) => q.questionId), mode: dossier.mode, dossierTokens: dossier.tokens, ok: false, attempts: 0, ms: 0 };
-          batches.push(trace);
-          for (let attempt = 1; attempt <= 2 && !trace.ok; attempt += 1) {
-            trace.attempts = attempt;
-            try {
-              const response = await gateway.complete(
-                {
-                  purpose: "answer",
-                  json: true,
-                  reasoning: config.answerReasoning,
-                  maxTokens: config.answerMaxTokens,
-                  temperature: config.temperature,
-                  messages: [
-                    { role: "system", content: answerSystemPrompt(triage.context, dossier.text) },
-                    { role: "user", content: answerUserPrompt(batch) },
-                  ],
-                  meta: { questions: batch.map(({ questionId, answerType }) => ({ questionId, answerType })), dossierFileIds: dossier.fileIds },
-                },
-                signal,
-              );
-              trace.finishReason = response.finishReason;
-              trace.provider = response.provider;
-              trace.completionTokens = response.usage.completionTokens;
-              trace.rawContent = response.content.slice(0, 6_000);
-              for (const [questionId, answer] of parseBatchAnswers(response.content, batch)) raw.set(questionId, answer);
-              trace.ok = true;
-              trace.error = undefined;
-            } catch (error) {
-              trace.error = (error as Error).message;
-              logger.warn(`answer batch ${trace.questionIds[0]}… attempt ${attempt} failed: ${trace.error}`);
-              if (signal.aborted) break;
-            }
-          }
-          trace.ms = now() - batchStartedAt;
-        }),
-      ),
-    );
+    const runBatch = async (batch: Question[], pass: 1 | 2, passSignal: AbortSignal, sink: Map<string, RawAnswer>) => {
+      if (passSignal.aborted) return;
+      const batchStartedAt = now();
+      const dossier = dossierForBatch(plan, batch);
+      const trace: BatchTrace = { pass, questionIds: batch.map((q) => q.questionId), mode: dossier.mode, dossierTokens: dossier.tokens, ok: false, attempts: 0, ms: 0 };
+      batches.push(trace);
+      // Pass 2 samples differently (temperature, reversed question order) so its errors are less
+      // correlated with pass 1; it gets a single attempt and is never hedged.
+      const ordered = pass === 1 ? batch : [...batch].reverse();
+      for (let attempt = 1; attempt <= (pass === 1 ? 2 : 1) && !trace.ok; attempt += 1) {
+        trace.attempts = attempt;
+        try {
+          const response = await gateway.complete(
+            {
+              purpose: pass === 1 ? "answer" : "consistency",
+              json: true,
+              reasoning: config.answerReasoning,
+              maxTokens: config.answerMaxTokens,
+              temperature: pass === 1 ? config.temperature : config.consistencyTemperature,
+              messages: [
+                { role: "system", content: answerSystemPrompt(triage.context, dossier.text) },
+                { role: "user", content: answerUserPrompt(ordered) },
+              ],
+              meta: { pass, questions: ordered.map(({ questionId, answerType }) => ({ questionId, answerType })), dossierFileIds: dossier.fileIds },
+            },
+            passSignal,
+          );
+          trace.finishReason = response.finishReason;
+          trace.provider = response.provider;
+          trace.completionTokens = response.usage.completionTokens;
+          trace.usage = response.usage;
+          trace.rawContent = response.content.slice(0, 6_000);
+          for (const [questionId, answer] of parseBatchAnswers(response.content, batch)) sink.set(questionId, answer);
+          trace.ok = true;
+          trace.error = undefined;
+        } catch (error) {
+          trace.error = (error as Error).message;
+          if (!passSignal.aborted) logger.warn(`pass ${pass} batch ${trace.questionIds[0]}… attempt ${attempt} failed: ${trace.error}`);
+          if (passSignal.aborted) break;
+        }
+      }
+      trace.ms = now() - batchStartedAt;
+    };
+
+    const raw = new Map<string, RawAnswer>();
+    const secondRaw = new Map<string, RawAnswer>();
+    const secondPass = new AbortController();
+    const secondSignal = AbortSignal.any([signal, secondPass.signal]);
+    const firstPassDone = Promise.all(groups.map((batch) => limit(() => runBatch(batch, 1, signal, raw))));
+    const secondPassDone = config.consistency
+      ? Promise.allSettled(groups.map((batch) => limit(() => runBatch(batch, 2, secondSignal, secondRaw))))
+      : Promise.resolve([]);
+    await firstPassDone;
+    const consistency = { enabled: config.consistency, completedBatches: 0, abandonedBatches: 0, disagreements: [] as string[], resolvedByDerivation: [] as string[] };
+    if (config.consistency) {
+      let graceTimer: ReturnType<typeof setTimeout> | undefined;
+      await Promise.race([secondPassDone, new Promise((resolve) => (graceTimer = setTimeout(resolve, config.consistencyGraceMs)))]);
+      clearTimeout(graceTimer);
+      // Snapshot what finished in time, then abandon the rest; book an estimate for each
+      // abandoned call (priced like its pass-1 twin) because it may have been billed.
+      const finished = new Map(secondRaw);
+      const late = batches.filter((batch) => batch.pass === 2 && !batch.ok && !batch.error);
+      secondPass.abort(new Error("second pass grace period elapsed"));
+      for (const batch of late) {
+        const twin = batches.find((candidate) => candidate.pass === 1 && candidate.questionIds[0] === batch.questionIds[0]);
+        if (twin?.usage) ledger.record("consistency:abandoned", { ...twin.usage, cachedTokens: 0 }, undefined, true);
+      }
+      secondRaw.clear();
+      for (const [questionId, answer] of finished) secondRaw.set(questionId, answer);
+      consistency.completedBatches = batches.filter((batch) => batch.pass === 2 && batch.ok).length;
+      consistency.abandonedBatches = late.length;
+    }
 
     // 4. Deterministic reconciliation.
     const fileIds = corpus.documents.map((document) => document.fileId);
     const groundingDocuments = corpus.documents.filter((document) => triage.roles.get(document.fileId) !== "archive");
     const reconcileContext = { fileIds, groundingDocuments, escalationConfidence: config.escalationConfidence };
     const firstPass = new Map<string, Candidate>(questions.map((question) => [question.questionId, reconcile(question, raw.get(question.questionId), reconcileContext)]));
+    const alternatives = new Map<string, Candidate>();
+    for (const question of questions) {
+      const second = secondRaw.get(question.questionId);
+      const first = firstPass.get(question.questionId)!;
+      if (!second || first.flags.includes("missing")) continue;
+      const candidate = reconcile(question, second, reconcileContext);
+      if (candidate.flags.includes("invalid_value") || Object.is(candidate.value, first.value)) continue;
+      first.flags.push("disagreement");
+      alternatives.set(question.questionId, candidate);
+      consistency.disagreements.push(question.questionId);
+    }
 
     // 5. Bounded escalation of flagged answers to the tool-using agent.
     const final = new Map<string, { candidate: Candidate | null; source: AnswerTrace["source"] }>();
     const escalated: string[] = [];
     const agentCalls: Record<string, number> = {};
+    const adjudicated: string[] = [];
+    // A candidate derived from other questions (calc in terms of their ids) is recomputed from
+    // their final answers at assembly, so it is consistent by construction. When only one of the
+    // two candidates is derived, it wins outright; its components are settled on their own
+    // (agreement, derivation or adjudication) before the recomputation.
+    const questionIds = questions.map((question) => question.questionId);
+    const isDerived = (candidate: Candidate | undefined, self: string) => {
+      if (!candidate?.calc || !hasReferences(candidate.calc)) return false;
+      const references = expressionReferences(candidate.calc, questionIds);
+      return references.length > 0 && !references.includes(self);
+    };
+    for (const question of questions.filter((candidate) => alternatives.has(candidate.questionId))) {
+      const first = firstPass.get(question.questionId)!;
+      const second = alternatives.get(question.questionId)!;
+      const [firstDerived, secondDerived] = [isDerived(first, question.questionId), isDerived(second, question.questionId)];
+      if (firstDerived === secondDerived) continue;
+      final.set(question.questionId, { candidate: firstDerived ? first : second, source: "derivation" });
+      consistency.resolvedByDerivation.push(question.questionId);
+    }
+    const disagreeing = questions.filter((question) => alternatives.has(question.questionId) && !final.has(question.questionId));
     const flagged = questions
-      .filter((question) => needsEscalation(firstPass.get(question.questionId)!))
+      .filter((question) => !alternatives.has(question.questionId) && needsEscalation(firstPass.get(question.questionId)!))
       .sort((left, right) => {
         const rank = (question: Question) => Math.min(...firstPass.get(question.questionId)!.flags.map((flag) => {
           const index = ESCALATION_PRIORITY.indexOf(flag);
@@ -186,6 +237,36 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
         }));
         return rank(left) - rank(right);
       });
+    // 5a. Self-consistency: settle each disagreement with one adjudication call (in parallel).
+    const adjudication = disagreeing.length
+      ? (async () => {
+          const stop = new AbortController();
+          const budget = setTimeout(() => stop.abort(new Error("adjudication budget exhausted")), config.adjudicationBudgetMs);
+          await Promise.all(
+            disagreeing.map((question) =>
+              limit(async () => {
+                adjudicated.push(question.questionId);
+                try {
+                  const verdict = await adjudicate(
+                    question,
+                    firstPass.get(question.questionId)!,
+                    alternatives.get(question.questionId)!,
+                    { gateway, context: triage.context, dossier: dossierForBatch(plan, [question]) },
+                    { reasoning: config.answerReasoning, maxTokens: config.answerMaxTokens, temperature: config.temperature, signal: AbortSignal.any([signal, stop.signal]) },
+                  );
+                  const candidate = verdict && reconcile(question, verdict, { ...reconcileContext, escalationConfidence: 0 });
+                  if (candidate && isPublishable(candidate)) final.set(question.questionId, { candidate, source: "adjudication" });
+                } catch (error) {
+                  logger.warn(`adjudication ${question.questionId}: ${(error as Error).message}`);
+                }
+              }),
+            ),
+          );
+          clearTimeout(budget);
+        })()
+      : Promise.resolve();
+
+    // 5b. Tool-using agent for the other flags (runs concurrently with adjudication).
     const toEscalate = config.escalation && now() < startedAt + config.deadlineMs ? flagged.slice(0, config.maxEscalations) : [];
     if (toEscalate.length > 0) {
       const toolbox = createAgentToolbox(corpus, triage.roles);
@@ -201,6 +282,7 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
             const outcome = await runAgent(
               question,
               firstPass.get(question.questionId),
+              alternatives.get(question.questionId),
               { gateway, toolbox, context: triage.context, catalog },
               { maxSteps: config.agentMaxSteps, reasoning: config.agentReasoning, maxTokens: config.agentMaxTokens, temperature: config.temperature, signal: escalationSignal },
             );
@@ -215,18 +297,34 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
       );
       clearTimeout(budget);
     }
+    await adjudication;
 
-    // 6. Assemble with fallbacks: agent → first pass (calc-corrected) → null.
+    // 6. Assemble with fallbacks: adjudication/agent → first pass (calc-corrected) → null,
+    //    then recompute derived answers from their components' final values.
     const answers: Record<string, AnswerValue> = {};
     const answerTraces: Record<string, AnswerTrace> = {};
+    const chosenAnswers = new Map<string, { candidate: Candidate | null; source: AnswerTrace["source"] }>();
     for (const question of questions) {
       const first = firstPass.get(question.questionId)!;
-      const chosen =
+      chosenAnswers.set(
+        question.questionId,
         final.get(question.questionId) ??
-        (isPublishable(first)
-          ? { candidate: first, source: escalated.includes(question.questionId) ? ("fallback_first_pass" as const) : ("first_pass" as const) }
-          : { candidate: null, source: "unanswered" as const });
+          (isPublishable(first)
+            ? {
+                candidate: first,
+                source: escalated.includes(question.questionId) || adjudicated.includes(question.questionId) ? ("fallback_first_pass" as const) : ("first_pass" as const),
+              }
+            : { candidate: null, source: "unanswered" as const }),
+      );
+    }
+    const finalCandidates = new Map<string, Candidate>();
+    for (const [questionId, chosen] of chosenAnswers) if (chosen.candidate) finalCandidates.set(questionId, chosen.candidate);
+    applyDerivations(questions, finalCandidates);
+    for (const question of questions) {
+      const first = firstPass.get(question.questionId)!;
+      const chosen = chosenAnswers.get(question.questionId)!;
       const candidate = chosen.candidate;
+      if (candidate?.flags.includes("derived") && !first.flags.includes("derived")) first.flags.push("derived");
       answers[question.questionId] =
         candidate && candidate.value !== null
           ? { value: candidate.value, evidenceFileIds: candidate.evidenceFileIds }
@@ -251,7 +349,9 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
       triage: { ok: triage.ok, roles: Object.fromEntries(triage.roles), context: triage.context, error: triage.error },
       visionTranscribed,
       batches,
+      consistency,
       flags: Object.fromEntries([...firstPass].map(([questionId, candidate]) => [questionId, candidate.flags])),
+      adjudicated,
       escalated,
       agentCalls,
       answers: answerTraces,

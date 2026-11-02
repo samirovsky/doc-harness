@@ -104,6 +104,7 @@ console.log(
     `(${trace.cost.calls} calls${trace.cost.estimatedCalls ? `, ${trace.cost.estimatedCalls} estimated` : ""}; ${JSON.stringify(trace.cost.byPurpose)}) · ` +
     `tokens in ${tokens.prompt} (cached ${tokens.cached}) / out ${tokens.completion} (reasoning ${tokens.reasoning}) · ` +
     `triage ${trace.triage.ok ? "ok" : "FAILED"} (${Object.values(trace.triage.roles).filter((role) => role === "archive").length} archived; as-of ${trace.triage.context.asOfDate}) · ` +
+    `second pass ${trace.consistency.completedBatches}/${trace.consistency.completedBatches + trace.consistency.abandonedBatches} · disagreements [${trace.consistency.disagreements.join(",")}] · by derivation [${trace.consistency.resolvedByDerivation.join(",")}] · adjudicated ${trace.adjudicated.length} · ` +
     `escalated ${trace.escalated.length} · hedges ${trace.cost.hedges}`,
 );
 const timeline = trace.calls.map((call) => `${call.purpose}:${call.ms ?? "?"}ms`).join(" ");

@@ -94,3 +94,34 @@ export function evaluateArithmetic(expression: string): number {
   if (!Number.isFinite(result)) throw new ArithmeticError("non-finite result");
   return result;
 }
+
+/** Detects whether an expression references question ids (e.g. "q_012 - q_013"). */
+export function hasReferences(expression: string): boolean {
+  return /\bq_[A-Za-z0-9]/.test(expression);
+}
+
+/** Known question ids referenced in an expression (longest ids win, so "q_1-q_2" is two ids). */
+export function expressionReferences(expression: string, knownIds: string[]): string[] {
+  const found: string[] = [];
+  let rest = expression;
+  for (const id of [...knownIds].sort((a, b) => b.length - a.length)) {
+    const pattern = new RegExp(`(^|[^A-Za-z0-9_])${id.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")}(?![A-Za-z0-9_])`, "g");
+    if (pattern.test(rest)) {
+      found.push(id);
+      rest = rest.replace(pattern, "$1 ");
+    }
+  }
+  return found;
+}
+
+/** Evaluates an expression after substituting known question-id references with their values. */
+export function evaluateWithReferences(expression: string, values: Map<string, number>): number {
+  let substituted = expression;
+  for (const id of [...values.keys()].sort((a, b) => b.length - a.length)) {
+    const pattern = new RegExp(`(^|[^A-Za-z0-9_])${id.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")}(?![A-Za-z0-9_])`, "g");
+    const value = values.get(id)!;
+    substituted = substituted.replace(pattern, `$1(${value})`);
+  }
+  if (hasReferences(substituted)) throw new ArithmeticError("unresolved question reference");
+  return evaluateArithmetic(substituted);
+}

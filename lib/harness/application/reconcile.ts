@@ -1,4 +1,4 @@
-import { ArithmeticError, evaluateArithmetic } from "../domain/arithmetic";
+import { ArithmeticError, evaluateArithmetic, evaluateWithReferences, expressionReferences, hasReferences } from "../domain/arithmetic";
 import { canonicalize, cleanNumber } from "../domain/canonicalize";
 import type { AnswerScalar, Question } from "../domain/contract";
 import { documentText, type CorpusDocument } from "../domain/document";
@@ -20,10 +20,12 @@ export type Flag =
   | "calc_invalid"
   | "low_confidence"
   | "no_evidence"
-  | "grounded_evidence";
+  | "grounded_evidence"
+  | "disagreement"
+  | "derived";
 
 /** Flags that justify spending an agent escalation. */
-export const ESCALATION_FLAGS: Flag[] = ["missing", "invalid_value", "calc_mismatch", "no_evidence", "low_confidence"];
+export const ESCALATION_FLAGS: Flag[] = ["missing", "invalid_value", "disagreement", "calc_mismatch", "no_evidence", "low_confidence"];
 
 export interface Candidate {
   questionId: string;
@@ -105,7 +107,8 @@ export function reconcile(question: Question, raw: RawAnswer | undefined, contex
   if (!canonical.ok) flags.push("invalid_value");
 
   const calc = typeof raw.calc === "string" && raw.calc.trim() ? raw.calc.trim() : null;
-  if (calc && question.answerType === "number") {
+  // Calcs referencing other questions are resolved after all answers are final (see applyDerivations).
+  if (calc && question.answerType === "number" && !hasReferences(calc)) {
     try {
       const computed = cleanNumber(evaluateArithmetic(calc));
       if (value === null || typeof value !== "number") {
@@ -150,4 +153,44 @@ export function isPublishable(candidate: Candidate): boolean {
 
 export function needsEscalation(candidate: Candidate): boolean {
   return candidate.flags.some((flag) => ESCALATION_FLAGS.includes(flag));
+}
+
+/**
+ * Derivation consistency: a number answer whose calc references other
+ * questions (e.g. "q_012 - q_013") is recomputed from their final values, so
+ * a derived figure can never contradict its components. Its evidence gains
+ * the components' evidence. Repeats to resolve chains; skips cycles and
+ * unresolved references.
+ */
+export function applyDerivations(questions: Question[], candidates: Map<string, Candidate>): void {
+  const types = new Map(questions.map((question) => [question.questionId, question.answerType]));
+  for (let round = 0; round < 3; round += 1) {
+    let changed = false;
+    for (const [questionId, candidate] of candidates) {
+      if (types.get(questionId) !== "number" || !candidate.calc) continue;
+      const references = expressionReferences(candidate.calc, [...types.keys()]);
+      if (references.length === 0 || references.includes(questionId)) continue;
+      const values = new Map<string, number>();
+      for (const id of references) {
+        const component = candidates.get(id)?.value;
+        if (typeof component === "number") values.set(id, component);
+      }
+      let value: number;
+      try {
+        value = cleanNumber(evaluateWithReferences(candidate.calc, values));
+      } catch {
+        continue;
+      }
+      if (Object.is(value, candidate.value)) continue;
+      candidate.value = value;
+      if (!candidate.flags.includes("derived")) candidate.flags.push("derived");
+      for (const id of references) {
+        for (const fileId of candidates.get(id)?.evidenceFileIds ?? []) {
+          if (!candidate.evidenceFileIds.includes(fileId)) candidate.evidenceFileIds.push(fileId);
+        }
+      }
+      changed = true;
+    }
+    if (!changed) break;
+  }
 }

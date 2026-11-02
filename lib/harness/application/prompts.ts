@@ -60,7 +60,7 @@ ${VALUE_RULES}
 OUTPUT: JSON only, one entry per question, keys in exactly this order:
 {"answers":[{"questionId":string,"rationale":string,"calc":string|null,"value":number|string|boolean|null,"evidenceFileIds":[string],"confidence":number}]}
 - rationale: written FIRST, at most 35 words: the deciding facts, rows or rules. The value must follow from it (for yes/no questions, state the comparison, then the boolean that matches it).
-- calc: when the value is derived by arithmetic, the expression over the source numbers (e.g. "120000 + 85000 - 45000"); otherwise null. It must evaluate exactly to value.
+- calc: when the value is derived by arithmetic, the expression over the source numbers (e.g. "120000 + 85000 - 45000"); otherwise null. It must evaluate exactly to value. When the value derives from other questions in this request (a difference, net or total of their answers), write calc in terms of their ids (e.g. "q_101 - q_102"): it is then computed from those answers, keeping them consistent.
 - evidenceFileIds: the documents whose records or values the answer is taken or computed from, plus the document stating the final/authoritative figure if different (usually 1–3). Empty only when value is null.
 - confidence: 0 to 1, your probability that value is exactly right.
 
@@ -99,11 +99,21 @@ DOCUMENT CATALOG (role from triage; archive documents are not authoritative)
 ${catalog}`;
 }
 
-export function agentUserPrompt(question: Question, previous: string): string {
+export function agentUserPrompt(question: Question, previous: string, alternative: string | null): string {
+  const comparison = alternative
+    ? `\nAn independent second pass produced: ${alternative}\nThe two passes disagree. Determine which (if either) is right by checking the evidence with the tools — count and sum with query_table / calculate rather than by reading.`
+    : "";
   return `Question ${question.questionId} [${question.answerType}; ${question.canonicalFormat}]: ${question.question}
 
-A first pass produced: ${previous}
+A first pass produced: ${previous}${comparison}
 It was flagged for review. Verify against the evidence and call final_answer.`;
+}
+
+export function adjudicationUserPrompt(question: Question, first: string, second: string): string {
+  return `Two independent analysts answered the question below differently. Re-derive the answer from the documents, check each candidate's reasoning against the evidence rules (which rows qualify, what each figure includes, what supersedes what), and give the correct answer — it may differ from both.
+${questionsBlock([question])}
+Candidate 1: ${first}
+Candidate 2: ${second}`;
 }
 
 export const VISION_PROMPT =

@@ -103,12 +103,49 @@ Given(
   ) {
     this.fake.answers.set(questionId, {
       value: parseValue(rawValue),
-      calc,
-      confidence: confidence === undefined ? undefined : Number(confidence),
+      calc: calc || undefined,
+      // Cucumber passes "" (not undefined) for optional groups that did not match.
+      confidence: confidence ? Number(confidence) : undefined,
       evidence: splitIds(evidence),
     });
   },
 );
+
+Given(
+  new RegExp(
+    String.raw`^a model that answers "([^"]+)" with ${VALUE} in the first pass and ${VALUE} in the second pass citing "([^"]*)"$`,
+  ),
+  function (this: HarnessWorld, questionId: string, first: string, second: string, evidence: string) {
+    this.fake.answers.set(questionId, { value: parseValue(first), evidence: splitIds(evidence) });
+    this.fake.secondPassAnswers.set(questionId, { value: parseValue(second), evidence: splitIds(evidence) });
+  },
+);
+
+Given(
+  new RegExp(
+    String.raw`^a model that answers "([^"]+)" with ${VALUE} using calc "([^"]*)" in the first pass and ${VALUE} in the second pass citing "([^"]*)"$`,
+  ),
+  function (this: HarnessWorld, questionId: string, first: string, calc: string, second: string, evidence: string) {
+    this.fake.answers.set(questionId, { value: parseValue(first), calc, evidence: splitIds(evidence) });
+    this.fake.secondPassAnswers.set(questionId, { value: parseValue(second), evidence: splitIds(evidence) });
+  },
+);
+
+Then("the question {string} was not adjudicated", function (this: HarnessWorld, questionId: string) {
+  assert.ok(!this.trace!.adjudicated.includes(questionId), `adjudicated: ${this.trace!.adjudicated}`);
+});
+
+Given("a model whose second-pass calls take {int} ms", function (this: HarnessWorld, ms: number) {
+  this.fake.secondPassDelayMs = ms;
+});
+
+Given("a second-pass grace period of {int} ms", function (this: HarnessWorld, ms: number) {
+  this.config.consistencyGraceMs = ms;
+});
+
+Given("a single answer pass", function (this: HarnessWorld) {
+  this.config.consistency = false;
+});
 
 Given("a model whose calls always fail", function (this: HarnessWorld) {
   this.fake.failAll = true;
@@ -136,6 +173,17 @@ Given(
     });
   },
 );
+
+Given(
+  new RegExp(String.raw`^an adjudicator that answers "([^"]+)" with ${VALUE} citing "([^"]*)"$`),
+  function (this: HarnessWorld, questionId: string, rawValue: string, evidence: string) {
+    this.fake.adjudications.set(questionId, { value: parseValue(rawValue), evidence: splitIds(evidence) });
+  },
+);
+
+Given("an adjudicator that always fails", function (this: HarnessWorld) {
+  this.fake.adjudications.clear();
+});
 
 Given("an agent that always fails", function (this: HarnessWorld) {
   this.fake.defaultAgent = { kind: "fail" };
@@ -289,6 +337,36 @@ Then(
 
 Then("the question {string} was escalated", function (this: HarnessWorld, questionId: string) {
   assert.ok(this.trace!.escalated.includes(questionId));
+});
+
+Then("the question {string} was not escalated", function (this: HarnessWorld, questionId: string) {
+  assert.ok(!this.trace!.escalated.includes(questionId), `escalated: ${this.trace!.escalated}; flags: ${JSON.stringify(this.trace!.flags[questionId])}`);
+});
+
+Then("no question was flagged for {string}", function (this: HarnessWorld, flag: string) {
+  for (const [questionId, flags] of Object.entries(this.trace!.flags)) {
+    assert.ok(!flags.includes(flag as never), `${questionId}: ${flags}`);
+  }
+});
+
+Then(/^(\d+) answer pass(?:es)? (?:was|were) run$/, function (this: HarnessWorld, passes: string) {
+  const ran = (this.fake.requestsFor("answer").length > 0 ? 1 : 0) + (this.fake.requestsFor("consistency").length > 0 ? 1 : 0);
+  assert.equal(ran, Number(passes));
+});
+
+Then("the question {string} was adjudicated", function (this: HarnessWorld, questionId: string) {
+  assert.ok(this.trace!.adjudicated.includes(questionId), `adjudicated: ${this.trace!.adjudicated}`);
+});
+
+Then("the adjudicator saw both candidate answers for {string}", function (this: HarnessWorld, questionId: string) {
+  const request = this.fake
+    .requestsFor("verify")
+    .find((candidate) => (candidate.meta?.questions as { questionId: string }[])[0]?.questionId === questionId);
+  assert.ok(request, `no adjudication call for ${questionId}`);
+  const prompt = promptText(request);
+  const first = JSON.stringify(this.fake.answers.get(questionId)!.value);
+  const second = JSON.stringify(this.fake.secondPassAnswers.get(questionId)!.value);
+  assert.ok(prompt.includes(`"value":${first}`) && prompt.includes(`"value":${second}`), prompt.slice(-600));
 });
 
 Then(

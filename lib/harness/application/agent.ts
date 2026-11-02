@@ -45,12 +45,13 @@ function describePrevious(candidate: Candidate | undefined): string {
 export async function runAgent(
   question: Question,
   previous: Candidate | undefined,
+  alternative: Candidate | undefined,
   dependencies: { gateway: LlmGateway; toolbox: AgentToolbox; context: CaseContext; catalog: string },
   options: AgentOptions,
 ): Promise<AgentOutcome> {
   const messages: ChatMessage[] = [
     { role: "system", content: agentSystemPrompt(dependencies.context, dependencies.catalog) },
-    { role: "user", content: agentUserPrompt(question, describePrevious(previous)) },
+    { role: "user", content: agentUserPrompt(question, describePrevious(previous), alternative ? describePrevious(alternative) : null) },
   ];
   let calls = 0;
   try {
