@@ -43,3 +43,7 @@ next-env.d.ts
 /outputs/
 /work/
 /evaluation-private/
+
+# doc-harness content-addressed ingestion cache (never committed)
+/.cache/
+*.tsbuildinfo

@@ -2,6 +2,7 @@ import vinext from "vinext";
 import { defineConfig } from "vite";
 import hostingConfig from "./.openai/hosting.json";
 import { sites } from "./build/sites-vite-plugin";
+import { docHarness } from "./build/doc-harness-plugin";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
@@ -38,6 +39,9 @@ export default defineConfig(async () => {
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
     plugins: [
+      // Parses/OCRs the data room in Node at startup and serves it to the
+      // worker as `virtual:doc-harness/corpus` (workerd cannot read files).
+      docHarness(),
       vinext(),
       sites(),
       cloudflare({
