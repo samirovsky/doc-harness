@@ -9,8 +9,13 @@
     "dev": "cross-env WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev",
     "build": "cross-env WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build",
     "start": "cross-env WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
+    "test": "npm run build && node --test tests/rendered-html.test.mjs && npm run test:unit && npm run test:bdd",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "test:unit": "node --import tsx --test \"tests/unit/**/*.test.ts\"",
+    "test:bdd": "node --import tsx ./node_modules/@cucumber/cucumber/bin/cucumber.js",
+    "test:bdd:live": "node --import tsx ./node_modules/@cucumber/cucumber/bin/cucumber.js --profile live",
+    "harness:eval": "node --import tsx scripts/evaluate.ts",
+    "harness:ingest": "node --import tsx scripts/ingest.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",
