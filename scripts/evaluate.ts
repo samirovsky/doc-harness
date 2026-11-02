@@ -8,7 +8,7 @@
  * Writes outputs/eval-<timestamp>.json (output + trace + score). Requires
  * OPENROUTER_API_KEY (environment or .env).
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
@@ -20,17 +20,9 @@ import type { CaseInput, CaseOutput } from "../lib/harness/domain/contract";
 import { scoreAgainstKey } from "../lib/harness/evaluation/score";
 import { ingestDataRoom } from "../lib/harness/infrastructure/corpus/ingest";
 import { OpenRouterGateway } from "../lib/harness/infrastructure/llm/openrouter-gateway";
+import { loadDotEnv } from "./lib/env";
 
 const root = path.resolve(import.meta.dirname, "..");
-
-function loadDotEnv() {
-  const file = path.join(root, ".env");
-  if (!existsSync(file)) return;
-  for (const line of readFileSync(file, "utf8").split("\n")) {
-    const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-    if (match && !process.env[match[1]]) process.env[match[1]] = match[2].replace(/^["']|["']$/g, "");
-  }
-}
 
 const { values: args } = parseArgs({
   options: {
@@ -45,7 +37,7 @@ const { values: args } = parseArgs({
   },
 });
 
-loadDotEnv();
+loadDotEnv(root);
 const apiKey = process.env.OPENROUTER_API_KEY;
 if (!apiKey) {
   console.error("OPENROUTER_API_KEY is not set (environment or .env)");

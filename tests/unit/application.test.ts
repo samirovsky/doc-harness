@@ -98,3 +98,12 @@ describe("resolveFileReference", () => {
     assert.equal(resolveFileReference(2, ["alpha.pdf", "beta.pdf"]), "beta.pdf");
   });
 });
+
+describe("doctor dependency check", () => {
+  it("finds installed packages even when their exports hide package.json", async () => {
+    const path = await import("node:path");
+    const { checkDependencies } = await import("@/scripts/lib/doctor");
+    const result = checkDependencies(path.resolve(import.meta.dirname, "../.."));
+    assert.equal(result.status, "pass", result.detail);
+  });
+});

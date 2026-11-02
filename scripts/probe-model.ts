@@ -5,24 +5,19 @@
  *  2. reasoning effort low              5. implicit prompt caching (same prefix twice)
  *  3. native tool calling
  */
-import { existsSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { openRouterRequestDefaults } from "../lib/challenge/openrouter";
 import type { LlmRequest, LlmResponse } from "../lib/harness/application/ports";
 import { OpenRouterGateway } from "../lib/harness/infrastructure/llm/openrouter-gateway";
 import { imageMimeType } from "../lib/harness/infrastructure/parsers/image";
+import { loadDotEnv } from "./lib/env";
 
 const root = path.resolve(import.meta.dirname, "..");
-if (existsSync(path.join(root, ".env"))) {
-  for (const line of readFileSync(path.join(root, ".env"), "utf8").split("\n")) {
-    const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-    if (match && !process.env[match[1]]) process.env[match[1]] = match[2];
-  }
-}
+loadDotEnv(root);
 const apiKey = process.env.OPENROUTER_API_KEY;
-if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
-const gateway = new OpenRouterGateway({ apiKey, defaults: openRouterRequestDefaults, maxRetries: 0 });
+if (!apiKey) throw new Error("OPENROUTER_API_KEY missing: run `npm run harness:setup` and put your key in .env");
+const gateway = new OpenRouterGateway({ apiKey, defaults: openRouterRequestDefaults, baseUrl: process.env.OPENROUTER_BASE_URL || undefined, maxRetries: 0 });
 let total = 0;
 
 async function probe(name: string, request: LlmRequest, check: (response: LlmResponse) => string) {

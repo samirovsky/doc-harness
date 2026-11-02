@@ -86,14 +86,19 @@ Answers are keyed by question ID, so their order does not matter. Canonical valu
 
 ```bash
 npm install
-cp .env.example .env          # set OPENROUTER_API_KEY
+npm run harness:setup         # creates .env from .env.example; then set OPENROUTER_API_KEY in .env
+npm run harness:doctor        # preflight checks with fixes
 npm run dev                   # ingestion (parse + OCR) starts automatically
 ```
 
-Open `/workspace` and press **Start analysis**. Other entry points:
+Open `/workspace` and press **Start analysis**. Step-by-step usage, every helper command and troubleshooting are in **[GUIDE.md](GUIDE.md)** (English) and **[GUIDE.fr.md](GUIDE.fr.md)** (français). Other entry points:
 
 | Command | What it does |
 |---|---|
+| `npm run harness:setup` | Creates `.env` from `.env.example` if missing (never overwrites it; never prints the key) |
+| `npm run harness:doctor` | Preflight checks (Node, dependencies, key, proxy, OpenRouter account and model, data room, ingestion, playbook) with a fix for each problem (`-- --offline` skips network calls) |
+| `npm run harness:answer` | Full pipeline from the command line, no browser and no scoring; writes the exact API payload to `outputs/answers-*.json` |
+| `npm run harness:api` | Sends the playbook to a running `npm run dev` at `/api/answer`, then saves, validates and scores the response |
 | `npm run harness:eval` | Full pipeline in Node + the UI's scoring rule, per-question matrix, call timeline, writes `outputs/eval-*.json` (`--questions q_001,q_012`, `--batch-size`, `--reasoning`, `--no-escalation`, `--no-triage`) |
 | `npm run harness:ingest [-- <fileId>]` | Shows what the parsers extracted (token sizes, OCR confidence, or one rendered document) |
 | `npm run harness:probe` | Tiny capability probes of the fixed model (JSON mode, reasoning, tools, vision, caching) |
@@ -131,7 +136,7 @@ npm run dev ─► Vite plugin docHarness() (Node)                       answerC
 
 **Clean architecture.** `domain/` (pure: document model, canonicalization, arithmetic, BM25, table-query DSL, output validator, cost ledger) ← `application/` (use cases + ports: `LlmGateway`; decorators for metering and hedging) ← `infrastructure/` (parsers, OCR, OpenRouter adapter, corpus cache) ← composition roots (`lib/candidate/answer.ts`, `scripts/evaluate.ts`). The dependency rule, workerd-safety, the fixed model/provider policy and "no practice literals in the source" are executable BDD scenarios.
 
-**BDD.** The behaviour was specified first as Gherkin features (`features/`: output contract, canonicalization, ingestion, triage and dossier, escalation, cost, batching and latency, architecture, self-consistency, the live practice gate), run red, then implemented layer by layer. 76 offline scenarios use a scripted fake model, so they are fast, deterministic and free.
+**BDD.** The behaviour was specified first as Gherkin features (`features/`: output contract, canonicalization, ingestion, triage and dossier, escalation, cost, batching and latency, architecture, self-consistency, helper commands, guide-versus-code checks, the live practice gate), run red, then implemented layer by layer. 105 offline scenarios use a scripted fake model, so they are fast, deterministic and free.
 
 **Parsing.** I wrote small, format-specific readers rather than using a generic "file to text" tool, because structure (tables, slides, sheets) carries meaning.
 - **PDF** (`unpdf`): text runs regrouped into lines by baseline, with ` | ` inserted at column gaps, so every table row stays on one line.
