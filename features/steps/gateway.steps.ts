@@ -34,6 +34,18 @@ Then(
   },
 );
 
+When(
+  "the OpenRouter adapter builds a request with reasoning {string}",
+  function (this: GatewayWorld, reasoning: "off" | "low" | "medium" | "high") {
+    const gateway = new OpenRouterGateway({ apiKey: "test", defaults: openRouterRequestDefaults });
+    this.body = gateway.buildBody({ purpose: "answer", reasoning, messages: [{ role: "user", content: "hi" }] });
+  },
+);
+
+Then("the request reasoning effort is {string}", function (this: GatewayWorld, effort: string) {
+  assert.equal((this.body!.reasoning as { effort?: string }).effort, effort);
+});
+
 Then("the request asks OpenRouter to include usage cost", function (this: GatewayWorld) {
   assert.deepEqual(this.body!.usage, { include: true });
 });

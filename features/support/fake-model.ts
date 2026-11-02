@@ -31,10 +31,16 @@ export class FakeModel implements LlmGateway {
   failAll = false;
   failTriage = false;
   costPerCall: number | null = null;
+  /** Per-call latency of answer calls, in call order (last value repeats). */
+  answerDelaysMs: number[] = [];
 
-  async complete(request: LlmRequest): Promise<LlmResponse> {
+  async complete(request: LlmRequest, signal?: AbortSignal): Promise<LlmResponse> {
     this.requests.push(request);
     if (this.failAll) throw new Error("scripted model failure");
+    if (request.purpose === "answer" && this.answerDelaysMs.length > 0) {
+      const index = this.requestsFor("answer").length - 1;
+      await delay(this.answerDelaysMs[Math.min(index, this.answerDelaysMs.length - 1)], signal);
+    }
     switch (request.purpose) {
       case "triage":
         if (this.failTriage) throw new Error("scripted triage failure");
@@ -160,4 +166,15 @@ export function promptText(request: LlmRequest): string {
             .join("\n"),
     )
     .join("\n");
+}
+
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(new Error("aborted"));
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener("abort", () => {
+      clearTimeout(timer);
+      reject(new Error("aborted"));
+    });
+  });
 }

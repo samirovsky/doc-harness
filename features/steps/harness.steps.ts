@@ -149,6 +149,17 @@ Given("an agent step limit of {int}", function (this: HarnessWorld, steps: numbe
   this.config.agentMaxSteps = steps;
 });
 
+Given(
+  "a model whose first answer call takes {int} ms and later calls take {int} ms",
+  function (this: HarnessWorld, first: number, later: number) {
+    this.fake.answerDelaysMs = [first, later];
+  },
+);
+
+Given("answer calls are hedged after {int} ms", function (this: HarnessWorld, afterMs: number) {
+  this.config.hedgeAfterMs = afterMs;
+});
+
 Given("escalation is disabled", function (this: HarnessWorld) {
   this.config.escalation = false;
 });
@@ -326,6 +337,33 @@ Then(
 
 Then("the model was called {int} times", function (this: HarnessWorld, count: number) {
   assert.equal(this.fake.requests.length, count);
+});
+
+Then("the estimated cost is greater than {float} USD", function (this: HarnessWorld, cost: number) {
+  assert.ok(this.output!.estimatedCostUsd > cost, `${this.output!.estimatedCostUsd}`);
+});
+
+Then("the run took less than {int} milliseconds", function (this: HarnessWorld, ms: number) {
+  assert.ok(this.durationMs < ms, `${this.durationMs} ms`);
+});
+
+function assertSameBatch(world: HarnessWorld, ids: string[]) {
+  const batch = world.trace!.batches.find((candidate) => candidate.questionIds.includes(ids[0]));
+  assert.ok(batch, `no batch for ${ids[0]}`);
+  for (const id of ids) {
+    assert.ok(batch.questionIds.includes(id), `${id} not with ${ids[0]}: ${JSON.stringify(world.trace!.batches.map((b) => b.questionIds))}`);
+  }
+}
+
+Then(
+  "{string}, {string} and {string} were answered in the same batch",
+  function (this: HarnessWorld, a: string, b: string, c: string) {
+    assertSameBatch(this, [a, b, c]);
+  },
+);
+
+Then("{string} and {string} were answered in the same batch", function (this: HarnessWorld, a: string, b: string) {
+  assertSameBatch(this, [a, b]);
 });
 
 Then("the estimated cost is {float} USD", function (this: HarnessWorld, cost: number) {

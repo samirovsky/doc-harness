@@ -100,8 +100,10 @@ export class OpenRouterGateway implements LlmGateway {
       body.tool_choice = "auto";
     }
     if (request.reasoning) {
-      body.reasoning =
-        request.reasoning === "off" ? { enabled: false, exclude: true } : { effort: request.reasoning, exclude: true };
+      // GLM 5.3 Flash on OpenRouter rejects disabled reasoning ("Reasoning is
+      // mandatory"), so the lowest setting maps to the minimal effort level.
+      const effort = request.reasoning === "off" ? "minimal" : request.reasoning;
+      body.reasoning = { effort, exclude: true };
     }
     // Model and provider policy are fixed by the challenge: re-assert them last.
     body.model = this.options.defaults.model;

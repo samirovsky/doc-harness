@@ -28,6 +28,8 @@ export interface HarnessConfig {
   temperature: number;
   /** Soft deadline for the whole run; escalations are skipped once it passes. */
   deadlineMs: number;
+  /** Fire a duplicate of a model call still pending after this many ms (0 disables). */
+  hedgeAfterMs: number;
 }
 
 export const defaultConfig: HarnessConfig = {
@@ -47,6 +49,7 @@ export const defaultConfig: HarnessConfig = {
   vision: true,
   temperature: 0,
   deadlineMs: 150_000,
+  hedgeAfterMs: 12_000,
 };
 
 export function resolveConfig(overrides: Partial<HarnessConfig> = {}): HarnessConfig {

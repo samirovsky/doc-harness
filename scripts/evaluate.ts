@@ -86,14 +86,14 @@ const key = existsSync(keyPath) ? (JSON.parse(await readFile(keyPath, "utf8")) a
 const score = key ? scoreAgainstKey(output, key, input.questions) : null;
 
 const show = (value: unknown) => (value === undefined ? "missing" : JSON.stringify(value));
-console.log("\nquestion  result  submitted → expected   [sources]   (source of answer, flags)");
+console.log("\nquestion  result  submitted [sources]   ✗ expected [sources]   (origin; flags)");
 for (const question of input.questions) {
   const row = score?.rows.find((candidate) => candidate.questionId === question.questionId);
   const detail = trace.answers[question.questionId];
   const mark = !row ? "  ?  " : row.correct ? "  ✓  " : row.valueMatches ? " src✗" : "  ✗  ";
-  const expected = row && !row.correct ? ` → ${show(row.expected)} [${row.expectedSources.join(", ")}]` : "";
+  const expected = row && !row.correct ? `   ✗ expected ${show(row.expected)} [${row.expectedSources.join(", ")}]` : "";
   console.log(
-    `${question.questionId}  ${mark}  ${show(output.answers[question.questionId]?.value)}${expected}  [${output.answers[question.questionId]?.evidenceFileIds.join(", ")}]  (${detail.source}${detail.flags.length ? `; ${detail.flags.join(",")}` : ""})`,
+    `${question.questionId}  ${mark}  ${show(output.answers[question.questionId]?.value)} [${output.answers[question.questionId]?.evidenceFileIds.join(", ")}]${expected}  (${detail.source}${detail.flags.length ? `; ${detail.flags.join(",")}` : ""})`,
   );
   if (row && !row.correct && detail.rationale) console.log(`          ↳ ${detail.rationale}`);
 }
@@ -104,8 +104,10 @@ console.log(
     `(${trace.cost.calls} calls${trace.cost.estimatedCalls ? `, ${trace.cost.estimatedCalls} estimated` : ""}; ${JSON.stringify(trace.cost.byPurpose)}) · ` +
     `tokens in ${tokens.prompt} (cached ${tokens.cached}) / out ${tokens.completion} (reasoning ${tokens.reasoning}) · ` +
     `triage ${trace.triage.ok ? "ok" : "FAILED"} (${Object.values(trace.triage.roles).filter((role) => role === "archive").length} archived; as-of ${trace.triage.context.asOfDate}) · ` +
-    `escalated ${trace.escalated.length}`,
+    `escalated ${trace.escalated.length} · hedges ${trace.cost.hedges}`,
 );
+const timeline = trace.calls.map((call) => `${call.purpose}:${call.ms ?? "?"}ms`).join(" ");
+console.log(`calls: ${timeline}`);
 
 await mkdir(path.join(root, "outputs"), { recursive: true });
 const reportPath = path.join(root, "outputs", `eval-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);

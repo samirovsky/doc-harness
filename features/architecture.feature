@@ -16,6 +16,10 @@ Feature: Architecture guarantees
     Then the request uses the model and provider policy from lib/challenge/openrouter.ts unchanged
     And the request asks OpenRouter to include usage cost
 
+  Scenario: The lowest reasoning setting maps to minimal effort (reasoning is mandatory for this model)
+    When the OpenRouter adapter builds a request with reasoning "off"
+    Then the request reasoning effort is "minimal"
+
   Scenario: The OpenRouter adapter retries transient failures and reports the charged cost
     Given an OpenRouter endpoint that fails once with status 503 and then answers with cost 0.0042
     When the adapter completes a request

@@ -7,6 +7,8 @@ import { createAgentToolbox } from "./agent-tools";
 import { resolveConfig, type HarnessConfig } from "./config";
 import { dossierForBatch, planDossier, type DossierPlan } from "./dossier";
 import { extractJsonObject } from "./json";
+import { batchQuestions } from "./batching";
+import { HedgingGateway } from "./hedging-gateway";
 import { createLimiter, MeteredGateway } from "./metered-gateway";
 import { silentLogger, type LlmGateway, type Logger } from "./ports";
 import { answerSystemPrompt, answerUserPrompt, type CaseContext } from "./prompts";
@@ -50,17 +52,12 @@ export interface RunTrace {
   escalated: string[];
   agentCalls: Record<string, number>;
   answers: Record<string, AnswerTrace>;
-  cost: { totalUsd: number; calls: number; estimatedCalls: number; byPurpose: Record<string, number>; tokens: CostLedger["tokens"] };
+  cost: { totalUsd: number; calls: number; estimatedCalls: number; hedges: number; byPurpose: Record<string, number>; tokens: CostLedger["tokens"] };
+  calls: { purpose: string; ms: number | null; promptTokens: number; completionTokens: number; cachedTokens: number; costUsd: number }[];
   durationMs: number;
 }
 
 const ESCALATION_PRIORITY: Flag[] = ["missing", "invalid_value", "calc_mismatch", "no_evidence", "low_confidence"];
-
-function chunk<T>(items: T[], size: number): T[][] {
-  const groups: T[][] = [];
-  for (let index = 0; index < items.length; index += Math.max(1, size)) groups.push(items.slice(index, index + size));
-  return groups;
-}
 
 function parseBatchAnswers(content: string, batch: Question[]): Map<string, RawAnswer> {
   const parsed = extractJsonObject(content) as { answers?: unknown } & Record<string, unknown>;
@@ -91,7 +88,11 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
   const now = dependencies.now ?? Date.now;
   const startedAt = now();
   const ledger = new CostLedger(dependencies.priceCaps);
-  const gateway = new MeteredGateway(dependencies.gateway, ledger);
+  const hedging = new HedgingGateway(dependencies.gateway, ledger, {
+    afterMs: config.hedgeAfterMs,
+    purposes: ["triage", "answer", "agent", "vision"],
+  });
+  const gateway = new MeteredGateway(hedging, ledger);
   const limit = createLimiter(config.concurrency);
   const controller = new AbortController();
   const hardStop = setTimeout(() => controller.abort(new Error("run deadline exceeded")), config.deadlineMs + 30_000);
@@ -117,7 +118,7 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
     const raw = new Map<string, RawAnswer>();
     const batches: BatchTrace[] = [];
     await Promise.all(
-      chunk(questions, config.batchSize).map((batch) =>
+      batchQuestions(questions, config.batchSize).map((batch) =>
         limit(async () => {
           const batchStartedAt = now();
           const dossier = dossierForBatch(plan, batch);
@@ -243,9 +244,18 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
         totalUsd: ledger.totalUsd,
         calls: ledger.entries.length,
         estimatedCalls: ledger.entries.filter((entry) => entry.estimated).length,
+        hedges: hedging.hedges,
         byPurpose,
         tokens: ledger.tokens,
       },
+      calls: ledger.entries.map((entry) => ({
+        purpose: entry.purpose,
+        ms: entry.ms ?? null,
+        promptTokens: entry.usage.promptTokens,
+        completionTokens: entry.usage.completionTokens,
+        cachedTokens: entry.usage.cachedTokens ?? 0,
+        costUsd: entry.costUsd,
+      })),
       durationMs: now() - startedAt,
     };
     return { output, trace };

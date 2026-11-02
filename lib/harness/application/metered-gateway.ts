@@ -9,8 +9,9 @@ export class MeteredGateway implements LlmGateway {
   ) {}
 
   async complete(request: LlmRequest, signal?: AbortSignal): Promise<LlmResponse> {
+    const startedAt = Date.now();
     const response = await this.inner.complete(request, signal);
-    this.ledger.record(request.purpose, response.usage);
+    this.ledger.record(request.purpose, response.usage, Date.now() - startedAt);
     return response;
   }
 }

@@ -30,6 +30,8 @@ export interface CostEntry {
   usage: UsageLike & { cachedTokens?: number; reasoningTokens?: number };
   costUsd: number;
   estimated: boolean;
+  /** Wall-clock duration of the call, when measured. */
+  ms?: number;
 }
 
 export class CostLedger {
@@ -37,12 +39,13 @@ export class CostLedger {
 
   constructor(private readonly caps: PriceCaps) {}
 
-  record(purpose: string, usage: CostEntry["usage"]): void {
+  record(purpose: string, usage: CostEntry["usage"], ms?: number): void {
     this.entries.push({
       purpose,
       usage,
       costUsd: costOfUsage(usage, this.caps),
       estimated: !(typeof usage.costUsd === "number" && Number.isFinite(usage.costUsd)),
+      ms,
     });
   }
 

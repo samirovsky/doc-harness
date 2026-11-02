@@ -35,7 +35,9 @@ const EVIDENCE_RULES = `EVIDENCE RULES (apply in this order)
 4. Scope: when counting or summing records, follow the dataset's own scope, period and status fields and each row's notes. Exclude rows marked excluded, pending, void, rejected, cancelled, test, duplicate or out of period unless the question asks for them; keep rows whose notes say they are retained in the requested measure.
 5. Reconciliation: when a source says an item is kept elsewhere (external receipt, label, image, manual record, another report), add it from that source. Combine complementary components (e.g. initial plus follow-up amounts, losses from different categories) exactly once; deduplicate entities by their unique identifiers across sources.
 6. Cross-checks: summary tables and executive summaries are useful checks; when they conflict with detail, decide with rules 1–3.
-7. Return null when the documents do not contain the fact (e.g. personal traits never recorded), when the question concerns a date or period after the as-of date, or a period with no reported final figure. Do not extrapolate or assume a state continued.`;
+7. Return null when the documents do not contain the fact (e.g. personal traits never recorded), when the question concerns a date or period after the as-of date, or a period with no reported final figure. Do not extrapolate or assume a state continued.
+8. Derivations: a derived figure (difference, net, total, comparison) must use the same headline figures you would report for its components — e.g. a "declared vs delivered" difference uses the reported declared total and the reported delivered total. Before subtracting or adding an item, check whether the base figure already includes or excludes it: net = gross − deductions, where the gross includes the deducted item.
+9. Consistency: questions in one request often build on each other; keep their figures mutually consistent.`;
 
 const VALUE_RULES = `VALUE FORMAT by answerType
 - number: a JSON number without units, currency or separators (1320000). Percentages as the number shown (12.5). Counts as integers.
@@ -56,12 +58,12 @@ ${EVIDENCE_RULES}
 
 ${VALUE_RULES}
 
-OUTPUT: JSON only, one entry per question, in this shape:
-{"answers":[{"questionId":string,"value":number|string|boolean|null,"calc":string|null,"evidenceFileIds":[string],"confidence":number,"rationale":string}]}
+OUTPUT: JSON only, one entry per question, keys in exactly this order:
+{"answers":[{"questionId":string,"rationale":string,"calc":string|null,"value":number|string|boolean|null,"evidenceFileIds":[string],"confidence":number}]}
+- rationale: written FIRST, at most 35 words: the deciding facts, rows or rules. The value must follow from it (for yes/no questions, state the comparison, then the boolean that matches it).
 - calc: when the value is derived by arithmetic, the expression over the source numbers (e.g. "120000 + 85000 - 45000"); otherwise null. It must evaluate exactly to value.
-- evidenceFileIds: the decisive document ids — the authoritative source of the final value plus every document that contributed an operand (usually 1–3). Empty only when value is null.
+- evidenceFileIds: the documents whose records or values the answer is taken or computed from, plus the document stating the final/authoritative figure if different (usually 1–3). Empty only when value is null.
 - confidence: 0 to 1, your probability that value is exactly right.
-- rationale: at most 25 words naming the deciding fields, rows or rules.
 
 ${dossier}`;
 }
