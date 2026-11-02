@@ -80,7 +80,7 @@ Answers are keyed by question ID, so their order does not matter. Canonical valu
 
 # Candidate solution — `doc-harness`
 
-**Practice result:** 50/50 in 10 of the last 12 live runs (worst 47/50), typically 16–43 s and $0.015–0.023 per run (measured; see [Results](#results-on-the-practice-case)).
+**Practice result:** 50/50 in 12 of the last 14 live runs (worst 47/50). Typically 16–43 s and $0.015–0.054 per run; both depend on which upstream OpenRouter routes each call to (measured; see [Results](#results-on-the-practice-case)).
 
 ## Run it
 
@@ -211,6 +211,12 @@ Final configuration (self-consistency + derivation), last 12 live CLI runs (`har
 | Reported cost | median $0.017 (min $0.015, max $0.023) |
 | q_015 ("completed or confirmed" count) | correct in all 17 self-consistency runs |
 
+Final build (with robust triage references), run from the submission branch: 50/50 and 50/50, in 39.5 s and 82.8 s, for $0.054 and $0.037.
+- The 82.8 s run had 4 of 9 batches routed to the slow upstream (35–51 s each).
+- Average cost per call varied by upstream: Parasail ≈ $0.0019 (62% of prompt cached), Cohere ≈ $0.0028 (26% cached), OpenInference ≈ $0.0012.
+
+Before that fix, 2 runs triaged nothing because the model cited files by number. Those runs scored 49/50 and 48/50 at about $0.05–0.07.
+
 Earlier checkpoints:
 
 | Run | Score | Duration | Reported cost |
@@ -227,7 +233,7 @@ Tuning history:
    - A "prefer reported figures" rule broke the gross/net answers; it became a cross-check rule.
    - Hedging the second pass cost 12–20 extra calls per run for little gain.
 
-The account's real usage for all tuning (about 40 runs, probes and browser runs) stayed well under $1 of the $20 credit.
+The account's real usage for all tuning (about 45 runs, probes and browser runs) stayed under $1 of the $20 credit.
 
 ## What I would improve (with more time)
 
