@@ -70,7 +70,7 @@ const input: CaseInput = wanted ? { ...playbook, questions: playbook.questions.f
 
 const startedAt = Date.now();
 const { output, trace } = await runCase(input, {
-  gateway: new OpenRouterGateway({ apiKey, defaults: openRouterRequestDefaults }),
+  gateway: new OpenRouterGateway({ apiKey, defaults: openRouterRequestDefaults, baseUrl: process.env.OPENROUTER_BASE_URL || undefined }),
   corpus: ingestion.corpus,
   priceCaps: {
     promptPerMillion: openRouterRequestDefaults.provider.max_price.prompt,

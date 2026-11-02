@@ -20,7 +20,9 @@ export async function answerCase(input: CaseInput): Promise<CaseOutput> {
   const apiKey = typeof process !== "undefined" ? process.env.OPENROUTER_API_KEY : undefined;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set: copy .env.example to .env and add your key");
 
-  const gateway = new OpenRouterGateway({ apiKey, defaults: openRouterRequestDefaults });
+  // Optional override for networks where the worker runtime cannot reach openrouter.ai directly.
+  const baseUrl = process.env.OPENROUTER_BASE_URL || undefined;
+  const gateway = new OpenRouterGateway({ apiKey, defaults: openRouterRequestDefaults, baseUrl });
   const { output, trace } = await runCase(input, {
     gateway,
     corpus: dataRoom.corpus,

@@ -80,6 +80,8 @@ Answers are keyed by question ID, so their order does not matter. Canonical valu
 
 # Candidate solution — `doc-harness`
 
+**Practice result:** 50/50, typically 14–30 s and $0.01–0.03 per run (measured; see [Results](#results-on-the-practice-case)).
+
 ## Run it
 
 ```bash
@@ -92,13 +94,15 @@ Open `/workspace` and press **Start analysis**. Other entry points:
 
 | Command | What it does |
 |---|---|
-| `npm run harness:eval` | Full pipeline in Node + the UI's scoring rule, per-question matrix, writes `outputs/eval-*.json` (`--questions q_001,q_012`, `--batch-size`, `--reasoning`, `--no-escalation`, `--no-triage`) |
+| `npm run harness:eval` | Full pipeline in Node + the UI's scoring rule, per-question matrix, call timeline, writes `outputs/eval-*.json` (`--questions q_001,q_012`, `--batch-size`, `--reasoning`, `--no-escalation`, `--no-triage`) |
 | `npm run harness:ingest [-- <fileId>]` | Shows what the parsers extracted (token sizes, OCR confidence, or one rendered document) |
 | `npm run harness:probe` | Tiny capability probes of the fixed model (JSON mode, reasoning, tools, vision, caching) |
-| `npm run test:bdd` | Offline Gherkin acceptance suite (`features/*.feature`, fake model) |
+| `npm run test:bdd` | Offline Gherkin acceptance suite (`features/*.feature`, scripted fake model) |
 | `npm run test:bdd:live` | `@live` acceptance gate on the practice case (≥ 46/50, < $0.10, < 45 s) |
 | `npm run test:unit` | `node:test` unit tests |
 | `npm test` | Upstream build + tests, then unit + offline BDD |
+
+Behind a corporate HTTPS proxy: Node needs `NODE_USE_ENV_PROXY=1` for the CLI scripts. The worker runtime (workerd) cannot use the proxy at all, so set `OPENROUTER_BASE_URL` to an OpenRouter-compatible relay. Neither is needed on a normal network.
 
 ## Architecture and technical choices
 
@@ -107,19 +111,22 @@ npm run dev ─► Vite plugin docHarness() (Node)                       answerC
                manifest → parsers → OCR → content-hash cache ──► virtual:doc-harness/corpus
                                                                         │
      ┌──────────────────────────────── runCase (lib/harness/application) ┘
-     │ 0 vision fallback  (only images whose local OCR is weak)
-     │ 1 triage           1 call: core / reference / archive + subject + as-of date (fail-open)
-     │ 2 dossier          non-archive docs as one stable prefix; BM25 chunks per batch if > 60K tokens
-     │ 3 answer batches   ~6 questions/call, all batches in parallel, JSON {value, calc, evidence, confidence}
+     │ 0 vision fallback  only images whose local OCR is weak
+     │ 1 triage           1 call over compact profiles: archive / reference ids + subject + as-of date (fail-open)
+     │ 2 dossier          non-archive docs as one stable, cacheable prefix; BM25 chunks per batch if > 60K tokens
+     │ 3 answer batches   topic-clustered batches of ≤ 6 questions, all in parallel, hedged when slow;
+     │                    JSON per question: rationale → calc → value → evidence → confidence
      │ 4 reconcile        canonicalize · evaluate `calc` in code · normalize/ground evidence · flag
-     │ 5 escalate         flagged answers only → ReAct agent with search_corpus / read_document /
-     │                    query_table / calculate / final_answer (≤ 6 steps, capped count)
+     │ 5 escalate         flagged answers only → ReAct agent (search_corpus / read_document /
+     │                    query_table / calculate / final_answer), ≤ 6 steps, 20 s phase budget
      └ 6 assemble         schema-valid CaseOutput + summed OpenRouter usage.cost
 ```
 
-**Why ingestion is a Vite plugin.** `@cloudflare/vite-plugin` runs `answerCase` inside **workerd**: no filesystem, no runtime WASM compilation, no `eval`/`new Function`. Parsing and OCR therefore run in the Vite Node process when `npm run dev` starts (the "automatic preprocessing" the brief asks for). The normalized corpus reaches the worker as a virtual module. The answering core is pure TypeScript with no Node APIs, so the same code runs in workerd, in the Node eval CLI and in tests.
+**Why ingestion is a Vite plugin.** `@cloudflare/vite-plugin` runs `answerCase` inside **workerd**: no filesystem, no runtime WASM compilation, no `eval`/`new Function`. Parsing and OCR therefore run in the Vite Node process when `npm run dev` starts (the "automatic preprocessing" the brief asks for). The normalized corpus reaches the worker as a virtual module. The answering core is pure TypeScript with no Node APIs, so the same code runs in workerd (browser runner), in the Node eval CLI and in tests.
 
-**Clean architecture.** `domain/` (pure: document model, canonicalization, arithmetic, BM25, table-query DSL, output validator, cost) ← `application/` (use cases + ports: `LlmGateway`) ← `infrastructure/` (parsers, OCR, OpenRouter adapter, corpus cache) ← composition roots (`lib/candidate/answer.ts`, `scripts/evaluate.ts`). The dependency rule, workerd-safety and "no practice literals" are enforced as BDD scenarios.
+**Clean architecture.** `domain/` (pure: document model, canonicalization, arithmetic, BM25, table-query DSL, output validator, cost ledger) ← `application/` (use cases + ports: `LlmGateway`; decorators for metering and hedging) ← `infrastructure/` (parsers, OCR, OpenRouter adapter, corpus cache) ← composition roots (`lib/candidate/answer.ts`, `scripts/evaluate.ts`). The dependency rule, workerd-safety, the fixed model/provider policy and "no practice literals in the source" are executable BDD scenarios.
+
+**BDD.** The behaviour was specified first as Gherkin features (`features/`: output contract, canonicalization, ingestion, triage and dossier, escalation, cost, batching and latency, architecture, the live practice gate), run red, then implemented layer by layer. 66 offline scenarios use a scripted fake model, so they are fast, deterministic and free.
 
 **Parsing.** I wrote small, format-specific readers rather than using a generic "file to text" tool, because structure (tables, slides, sheets) carries meaning.
 - **PDF** (`unpdf`): text runs regrouped into lines by baseline, with ` | ` inserted at column gaps, so every table row stays on one line.
@@ -127,48 +134,86 @@ npm run dev ─► Vite plugin docHarness() (Node)                       answerC
 - **PPTX**: slide order from `presentation.xml`; text, tables, chart caches, SmartArt and speaker notes.
 - **DOCX**: body order with tables kept in place, plus headers, footers, footnotes and comments.
 - **CSV**: papaparse.
-- **Images**: offline **tesseract.js**, with the English model bundled from npm (no CDN). It retries on an inverted grayscale copy for light-on-dark designs. Only low-confidence images go to GLM vision during the run.
+- **Images**: offline **tesseract.js**, with the English model bundled from npm (no CDN). It retries on an inverted grayscale copy for light-on-dark designs (confidence 82–87 on the practice images). Only low-confidence images go to GLM vision during the run.
 - **Cache**: results are cached by `sha256(content)`, so renamed or replaced files can never serve stale text.
 
-**Agentic, but only where it pays.** A first pass over the whole dossier answers most questions in a single round trip. Deterministic checks then decide which answers deserve the slower tool-using agent:
+**Agentic, but only where it pays.** One parallel first pass over the whole dossier answers most questions in a single round trip. Deterministic checks decide which answers deserve the slower tool-using agent:
 - an invalid canonical value;
 - a `calc` that disagrees with the stated value;
-- low confidence;
-- missing evidence.
+- missing evidence;
+- very low confidence.
 
 Counting and summing are done by code (`calculate`, `query_table`), never by the model's mental arithmetic.
 
 ## Precision, cost and speed
 
-- **Precision.**
-  - *Authority triage* keeps self-declared archives (~80% of practice tokens) out of the prompt.
-  - *Generic evidence rules* in the prompt cover authority, supersession, effective dates vs filing dates, scope/status filters, cross-source reconciliation without double counting, and null for unsupported or after-close questions.
-  - *Arithmetic is recomputed in code* from the model's `calc` expression.
-  - *Canonicalization is strict*: ambiguous values are rejected and escalated rather than guessed.
-  - *Evidence ids are normalized* onto manifest ids, or grounded by locating the value in the corpus.
-  - *Decisive-source citation*: the authoritative file plus the files that contributed operands.
-- **Cost.**
-  - One triage call on compact profiles (~14K tokens).
-  - About 9 answer calls sharing an identical system prefix: rules plus the ~20K-token dossier, which is friendly to provider prompt caching.
-  - JSON-only outputs with 25-word rationales.
-  - Reasoning effort is `low` by default; the agent is used only on flagged answers, capped at 12.
-  - Cost is OpenRouter's reported `usage.cost`, summed over every call. If a provider omits it, the harness uses a token × price-cap estimate, an upper bound that is labelled in the trace.
-- **Speed.**
-  - Ingestion happens at server start and is cached, so it stays outside the measured run.
-  - All answer batches and agents run concurrently behind one limiter, with per-call timeouts, retries on 429/5xx and an overall soft deadline.
-  - Any failure degrades to `null` answers in a payload that still validates against the schema.
+**Precision.** These are the levers that took the practice score from 45/50 to 50/50:
+- **Authority triage.** Self-declared archives (15 of 30 files, ~80% of tokens) never reach the answer prompt. Triage fails open.
+- **Generic evidence rules**, with no case literals:
+  - authority, and supersession by later approved amendments or final closes;
+  - effective dates vs filing dates;
+  - row scope and status filters;
+  - external items reconciled exactly once;
+  - unique-id deduplication;
+  - derived figures built from the headline component figures;
+  - cross-checks against control figures, reading what they include;
+  - `null` for unsupported or after-close questions.
+- **Topic-coherent batching.** TF-IDF cosine clustering, capped at 6 questions, puts e.g. gross / reversed / net, or declared / delivered / difference, in the same call, so derived answers stay consistent with their components. This fixed the cross-question inconsistencies.
+- **Rationale before value** in the JSON. A boolean then follows the comparison the model just wrote; this fixed "75,000 is not below 60,000 → true".
+- **Deterministic post-processing:**
+  - `calc` is re-evaluated in code;
+  - strict canonicalization that rejects rather than guesses;
+  - evidence ids normalized onto the manifest, or grounded by locating the value in the corpus;
+  - decisive-source citation (underlying records plus the final-figure document).
+
+**Cost.**
+- Triage on compact profiles (~14K tokens in, ~250 tokens out).
+- About 9 answer calls of ~20K tokens sharing one identical system prefix. The provider's prompt cache serves 50–85% of input tokens on repeated runs.
+- Short JSON outputs.
+- The agent is used only on flagged answers.
+- `estimatedCostUsd` is the sum of OpenRouter's reported `usage.cost` over every call, plus an estimate for abandoned hedge duplicates, priced at the rate the provider actually charged the winner.
+- The account's real usage after all 19 tuning runs, probes and browser runs was $0.37, below the sum the harness reported. The reported figure is conservative.
+
+**Speed.**
+- Ingestion runs at server start (cached), outside the measured window.
+- All answer batches run concurrently behind one limiter.
+- **Hedging:** a call still pending after 7 s (and again at 14 s) gets a duplicate at minimal reasoning; the first answer wins.
+- **Bounds:** escalation is capped at 20 s, every call has a timeout and retries on 429/5xx, and any failure degrades to `null` answers in a payload that still validates against the schema.
+
+**What I learned about the fixed model and provider pool** (measured with `harness:probe`, per-call traces and dedicated probes):
+- **Reasoning is mandatory.** `reasoning.enabled=false` is rejected, so the lowest setting maps to `effort: minimal`.
+- **JSON mode, tool calling and image input all work.**
+- **Routing is per call** between at least two upstreams:
+  - *Parasail* honours the effort setting and answers a 6-question batch in 2–5 s.
+  - *OpenInference* produces 2–6K hidden reasoning tokens (16–33 s) whatever the effort, the reasoning budget or `/nothink`.
+  - Identical or varied duplicates were routed back to OpenInference in my probes, so hedging only rescues spikes on the fast upstream.
+- **Typically one batch per run lands on the slow upstream**, which sets the latency floor (~15–30 s). The provider policy is fixed by the brief, so I document this rather than fight it.
 
 ## Results on the practice case
 
-> ⚠️ Pending live measurement: the build environment could not reach `openrouter.ai`. Run `npm run harness:eval` (or `npm run test:bdd:live`) to measure.
-> Offline, the full chain was verified through the dev server: plugin → virtual module → workerd `answerCase` → schema-valid 50-answer payload.
-> Estimates from prompt sizes: about 200K input and 25K output tokens, roughly **$0.03–0.06 per run**, and **15–35 s** wall-clock (dominated by the slowest batch plus any escalations).
+Final configuration:
+
+| Run | Score | Duration | Reported cost |
+|---|---|---|---|
+| CLI `harness:eval` #1 | 50/50 | 27.4 s | $0.0311 |
+| CLI `harness:eval` #2 | 50/50 | 14.0 s | $0.0088 |
+| CLI `harness:eval` #3 | 50/50 | 25.5 s | $0.0125 |
+| Workspace UI (browser → `route.ts` → workerd) | 50/50 (100%) | 30.1 s | $0.0109 |
+| `test:bdd:live` gate | ≥ 46/50 ✓ | < 45 s ✓ | < $0.10 ✓ |
+
+Tuning history:
+1. **First live run:** 45/50, 60 s, $0.020.
+2. **Prompt and batching fixes** (rationale first, derivation/consistency rules, topic batching): 50/50, but 41–57 s.
+3. **Latency fixes** (compact triage, earlier hedges at minimal reasoning, bounded escalation): 14–30 s.
+4. **Discarded experiment:** a "prefer reported figures" rule fixed one count but broke two gross/net answers. It is now a cross-check rule.
+
+Remaining variance: in the variants I tested, about 1 run in 4 missed the "completed or confirmed transfers" count by one.
 
 ## What I would improve (with more time)
 
-1. **Self-consistency on disagreement.** *What:* run two first passes at different batch groupings and escalate only questions where they disagree, instead of trusting self-reported confidence. *Why:* Flash-class confidences are poorly calibrated; disagreement is a far better error signal. *How:* this costs about 2× the cheap pass and stays parallel, so latency barely changes.
-2. **Typed fact extraction before answering.** *What:* build a fact table once per run (`entity, field, value, effective_date, status, source`) with per-document extraction calls, then answer from facts plus supersession rules applied in code. *Why:* effective-date and supersession logic becomes deterministic and testable, and the same table serves any question set.
-3. **Scanned-PDF OCR and table detection in images.** *What:* rasterize pages without a text layer and OCR them. *How:* pdf.js render + tesseract, kept Node-side. *Why:* the unseen case may contain a scanned PDF.
-4. **Evidence verification pass.** *What:* check that each cited file actually contains an operand (number or entity) of the answer. *Why:* removes over-citation and adds missing operand files, which matters if the private scorer checks source precision.
-5. **Prompt-cache-aware scheduling.** *What:* send one batch first and fan out the rest once its prefill is cached. *How:* keep it only if `cached_tokens` shows a benefit for this provider pool. *Why:* it cuts input cost by up to ~5×.
-6. **Embeddings for retrieval mode.** *What:* hybrid BM25 + small local embeddings. *Why:* better recall when questions paraphrase document labels. This only matters once a case outgrows the context budget.
+1. **Self-consistency instead of self-confidence.** *What:* run a second, cheap first pass and escalate only the questions where the two passes disagree. *Why:* every miss I observed came with confidence ≥ 0.9, so self-confidence never flagged one; disagreement would have caught the residual off-by-one count. *How:* the passes run in parallel, adding about $0.01 and no latency.
+2. **Streaming with time-to-first-token hedging.** *What:* stream responses, hedge when the first token is late, and cancel losers mid-stream. *Why:* OpenRouter stops billing cancelled streams on supported providers, which makes hedges nearly free; slow upstreams are also detectable from the first tokens.
+3. **Typed fact extraction before answering.** *What:* build a per-run fact table (`entity, field, value, effective_date, status, source`) and apply supersession and effective-date rules in code. *Why:* reconciliation becomes deterministic and testable, and one extraction serves any question set.
+4. **Scanned-PDF OCR.** *What:* rasterize pages without a text layer and OCR them. *How:* pdf.js render + tesseract, kept Node-side. *Why:* the unseen case may contain a scan.
+5. **Evidence verification.** *What:* check that every cited file contains an operand of the answer. *Why:* tightens source precision in case the private scorer checks more than overlap.
+6. **Hybrid retrieval for large rooms.** *What:* BM25 plus small local embeddings in retrieval mode. *Why:* better recall when questions paraphrase document labels. This only matters once a case exceeds the context budget.
