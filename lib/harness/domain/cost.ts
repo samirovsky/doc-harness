@@ -39,12 +39,13 @@ export class CostLedger {
 
   constructor(private readonly caps: PriceCaps) {}
 
-  record(purpose: string, usage: CostEntry["usage"], ms?: number): void {
+  /** `estimated` marks entries whose cost was inferred rather than reported by the provider. */
+  record(purpose: string, usage: CostEntry["usage"], ms?: number, estimated = false): void {
     this.entries.push({
       purpose,
       usage,
       costUsd: costOfUsage(usage, this.caps),
-      estimated: !(typeof usage.costUsd === "number" && Number.isFinite(usage.costUsd)),
+      estimated: estimated || !(typeof usage.costUsd === "number" && Number.isFinite(usage.costUsd)),
       ms,
     });
   }

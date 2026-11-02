@@ -33,6 +33,11 @@ export interface BatchTrace {
   attempts: number;
   ms: number;
   error?: string;
+  finishReason?: string;
+  provider?: string;
+  completionTokens?: number;
+  /** Raw model output (truncated) for post-run inspection. */
+  rawContent?: string;
 }
 
 export interface AnswerTrace {
@@ -53,7 +58,7 @@ export interface RunTrace {
   agentCalls: Record<string, number>;
   answers: Record<string, AnswerTrace>;
   cost: { totalUsd: number; calls: number; estimatedCalls: number; hedges: number; byPurpose: Record<string, number>; tokens: CostLedger["tokens"] };
-  calls: { purpose: string; ms: number | null; promptTokens: number; completionTokens: number; cachedTokens: number; costUsd: number }[];
+  calls: { purpose: string; ms: number | null; promptTokens: number; completionTokens: number; cachedTokens: number; costUsd: number; estimated: boolean }[];
   durationMs: number;
 }
 
@@ -90,7 +95,9 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
   const ledger = new CostLedger(dependencies.priceCaps);
   const hedging = new HedgingGateway(dependencies.gateway, ledger, {
     afterMs: config.hedgeAfterMs,
+    maxHedges: config.maxHedges,
     purposes: ["triage", "answer", "agent", "vision"],
+    adapt: config.hedgeReasoning ? (request) => ({ ...request, reasoning: config.hedgeReasoning! }) : undefined,
   });
   const gateway = new MeteredGateway(hedging, ledger);
   const limit = createLimiter(config.concurrency);
@@ -142,6 +149,10 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
                 },
                 signal,
               );
+              trace.finishReason = response.finishReason;
+              trace.provider = response.provider;
+              trace.completionTokens = response.usage.completionTokens;
+              trace.rawContent = response.content.slice(0, 6_000);
               for (const [questionId, answer] of parseBatchAnswers(response.content, batch)) raw.set(questionId, answer);
               trace.ok = true;
               trace.error = undefined;
@@ -179,6 +190,9 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
     if (toEscalate.length > 0) {
       const toolbox = createAgentToolbox(corpus, triage.roles);
       const catalog = documentCatalog(corpus, triage.roles);
+      const escalation = new AbortController();
+      const escalationSignal = AbortSignal.any([signal, escalation.signal]);
+      const budget = setTimeout(() => escalation.abort(new Error("escalation budget exhausted")), config.escalationBudgetMs);
       await Promise.all(
         toEscalate.map((question) =>
           limit(async () => {
@@ -188,7 +202,7 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
               question,
               firstPass.get(question.questionId),
               { gateway, toolbox, context: triage.context, catalog },
-              { maxSteps: config.agentMaxSteps, reasoning: config.agentReasoning, maxTokens: config.agentMaxTokens, temperature: config.temperature, signal },
+              { maxSteps: config.agentMaxSteps, reasoning: config.agentReasoning, maxTokens: config.agentMaxTokens, temperature: config.temperature, signal: escalationSignal },
             );
             agentCalls[question.questionId] = outcome.calls;
             if (outcome.error) logger.warn(`agent ${question.questionId}: ${outcome.error}`);
@@ -199,6 +213,7 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
           }),
         ),
       );
+      clearTimeout(budget);
     }
 
     // 6. Assemble with fallbacks: agent → first pass (calc-corrected) → null.
@@ -255,6 +270,7 @@ export async function runCase(input: CaseInput, dependencies: RunCaseDependencie
         completionTokens: entry.usage.completionTokens,
         cachedTokens: entry.usage.cachedTokens ?? 0,
         costUsd: entry.costUsd,
+        estimated: entry.estimated,
       })),
       durationMs: now() - startedAt,
     };

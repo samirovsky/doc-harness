@@ -57,6 +57,8 @@ export interface LlmResponse {
   toolCalls: ToolCall[];
   usage: LlmUsage;
   finishReason?: string;
+  /** Upstream provider that served the call (diagnostics only). */
+  provider?: string;
 }
 
 export interface LlmGateway {

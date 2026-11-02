@@ -64,13 +64,11 @@ export class FakeModel implements LlmGateway {
 
   private triagePayload(request: LlmRequest) {
     const fileIds = (request.meta?.fileIds as string[]) ?? [];
+    const withRole = (role: string) => fileIds.filter((fileId) => this.triageRoles.get(fileId) === role);
     return {
       caseContext: { subject: "test subject", asOfDate: null },
-      documents: fileIds.map((fileId) => ({
-        fileId,
-        role: this.triageRoles.get(fileId) ?? "core",
-        reason: "scripted",
-      })),
+      archive: withRole("archive"),
+      reference: withRole("reference"),
     };
   }
 

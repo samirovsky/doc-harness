@@ -108,6 +108,7 @@ console.log(
 );
 const timeline = trace.calls.map((call) => `${call.purpose}:${call.ms ?? "?"}ms`).join(" ");
 console.log(`calls: ${timeline}`);
+console.log(`answer batches: ${trace.batches.map((batch) => `${batch.ms}ms/${batch.completionTokens ?? "?"}tok@${batch.provider ?? "?"}`).join(" ")}`);
 
 await mkdir(path.join(root, "outputs"), { recursive: true });
 const reportPath = path.join(root, "outputs", `eval-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);

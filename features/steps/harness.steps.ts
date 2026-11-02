@@ -156,6 +156,29 @@ Given(
   },
 );
 
+Given(
+  "a model whose answer calls take {int} ms, {int} ms, then {int} ms",
+  function (this: HarnessWorld, first: number, second: number, later: number) {
+    this.fake.answerDelaysMs = [first, second, later];
+  },
+);
+
+Given(
+  "answer calls are hedged after {int} ms with reasoning {string}",
+  function (this: HarnessWorld, afterMs: number, reasoning: "off" | "low" | "medium" | "high") {
+    this.config.hedgeAfterMs = afterMs;
+    this.config.hedgeReasoning = reasoning;
+  },
+);
+
+Then("the first answer call used reasoning {string}", function (this: HarnessWorld, reasoning: string) {
+  assert.equal(this.fake.requestsFor("answer")[0].reasoning, reasoning);
+});
+
+Then("the hedge answer call used reasoning {string}", function (this: HarnessWorld, reasoning: string) {
+  assert.equal(this.fake.requestsFor("answer")[1].reasoning, reasoning);
+});
+
 Given("answer calls are hedged after {int} ms", function (this: HarnessWorld, afterMs: number) {
   this.config.hedgeAfterMs = afterMs;
 });

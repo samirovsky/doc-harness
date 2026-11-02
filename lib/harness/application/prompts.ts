@@ -20,9 +20,8 @@ Assign each document exactly one role:
 
 Also identify the case context: the main subject (organization) and the as-of date the current records are reported through (the latest close / "current through" date), as YYYY-MM-DD, or null if unclear.
 
-Reply with JSON only:
-{"caseContext":{"subject":string|null,"asOfDate":string|null},"documents":[{"fileId":string,"role":"core"|"reference"|"archive","reason":string}]}
-Keep each reason under 12 words. Include every fileId exactly once.`;
+Reply with JSON only, listing ONLY the non-core documents (every unlisted document is core):
+{"caseContext":{"subject":string|null,"asOfDate":string|null},"archive":[fileId,...],"reference":[fileId,...]}`;
 
 export function triageUserPrompt(profiles: string): string {
   return `Document profiles (beginning, end and table samples of each file):\n\n${profiles}`;
@@ -34,7 +33,7 @@ const EVIDENCE_RULES = `EVIDENCE RULES (apply in this order)
 3. Effective dates: a change applies from its EFFECTIVE date (not its approval or filing date) and only if effective on or before the as-of date. Entries marked future, planned or effective later do not apply.
 4. Scope: when counting or summing records, follow the dataset's own scope, period and status fields and each row's notes. Exclude rows marked excluded, pending, void, rejected, cancelled, test, duplicate or out of period unless the question asks for them; keep rows whose notes say they are retained in the requested measure.
 5. Reconciliation: when a source says an item is kept elsewhere (external receipt, label, image, manual record, another report), add it from that source. Combine complementary components (e.g. initial plus follow-up amounts, losses from different categories) exactly once; deduplicate entities by their unique identifiers across sources.
-6. Cross-checks: summary tables and executive summaries are useful checks; when they conflict with detail, decide with rules 1–3.
+6. Cross-checks: when a document also reports a summary, control or close figure for the same measure, reconcile your answer with it, reading its notes on what it includes or excludes (e.g. "posted" may exclude reversed items that "gross" includes). If they differ, re-check which items qualify, then decide with rules 1–5.
 7. Return null when the documents do not contain the fact (e.g. personal traits never recorded), when the question concerns a date or period after the as-of date, or a period with no reported final figure. Do not extrapolate or assume a state continued.
 8. Derivations: a derived figure (difference, net, total, comparison) must use the same headline figures you would report for its components — e.g. a "declared vs delivered" difference uses the reported declared total and the reported delivered total. Before subtracting or adding an item, check whether the base figure already includes or excludes it: net = gross − deductions, where the gross includes the deducted item.
 9. Consistency: questions in one request often build on each other; keep their figures mutually consistent.`;

@@ -38,3 +38,27 @@ Feature: Topic-coherent batching and tail-latency control
     Then the run took less than 1500 milliseconds
     And the model was called 3 times
     And the estimated cost is greater than 0.002 USD
+
+  Scenario: Hedge copies trade hidden reasoning for speed
+    Given a data room with documents:
+      | fileId    | content           |
+      | notes.pdf | Nothing relevant. |
+    And a playbook of 6 number questions
+    And an answer batch size of 6
+    And a model whose first answer call takes 2000 ms and later calls take 10 ms
+    And answer calls are hedged after 100 ms with reasoning "off"
+    When the harness answers the playbook
+    Then the first answer call used reasoning "low"
+    And the hedge answer call used reasoning "off"
+
+  Scenario: A call that stays slow gets a second hedge
+    Given a data room with documents:
+      | fileId    | content           |
+      | notes.pdf | Nothing relevant. |
+    And a playbook of 6 number questions
+    And an answer batch size of 6
+    And a model whose answer calls take 3000 ms, 3000 ms, then 10 ms
+    And answer calls are hedged after 100 ms
+    When the harness answers the playbook
+    Then the run took less than 1500 milliseconds
+    And the model was called 4 times

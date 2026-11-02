@@ -73,3 +73,16 @@ describe("createLimiter", () => {
     assert.equal(peak, 2);
   });
 });
+
+describe("estimateAbandoned", () => {
+  it("prices an abandoned hedge at the rate the provider charged the winner", async () => {
+    const { estimateAbandoned } = await import("@/lib/harness/application/hedging-gateway");
+    const winner = { content: "", toolCalls: [], usage: { promptTokens: 1000, completionTokens: 100, costUsd: 0.0013 } };
+    const estimate = estimateAbandoned(winner, { purpose: "answer", messages: [] }, Date.now(), {});
+    assert.equal(estimate.promptTokens, 1000);
+    assert.equal(estimate.completionTokens, 100);
+    assert.ok(Math.abs((estimate.costUsd ?? 0) - 0.0013) < 1e-12);
+    const unpriced = estimateAbandoned({ ...winner, usage: { ...winner.usage, costUsd: null } }, { purpose: "answer", messages: [] }, Date.now(), {});
+    assert.equal(unpriced.costUsd, null);
+  });
+});

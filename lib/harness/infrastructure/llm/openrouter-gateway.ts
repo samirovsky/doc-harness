@@ -38,6 +38,7 @@ interface WireMessage {
 }
 
 interface CompletionResponse {
+  provider?: string;
   choices?: {
     finish_reason?: string;
     message?: {
@@ -174,6 +175,7 @@ export class OpenRouterGateway implements LlmGateway {
       content,
       toolCalls,
       finishReason: choice.finish_reason,
+      provider: payload.provider,
       usage: {
         promptTokens: payload.usage?.prompt_tokens ?? 0,
         completionTokens: payload.usage?.completion_tokens ?? 0,

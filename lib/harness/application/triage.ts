@@ -68,8 +68,16 @@ export async function triageDocuments(
     );
     const parsed = extractJsonObject(response.content) as {
       caseContext?: { subject?: unknown; asOfDate?: unknown };
+      archive?: unknown;
+      reference?: unknown;
       documents?: { fileId?: unknown; role?: unknown; reason?: unknown }[];
     };
+    // Compact form: {"archive":[ids],"reference":[ids]}; unlisted documents stay core.
+    for (const role of ["reference", "archive"] as const) {
+      const ids = Array.isArray(parsed[role]) ? (parsed[role] as unknown[]) : [];
+      for (const id of ids) if (roles.has(String(id))) roles.set(String(id), role);
+    }
+    // Verbose form, accepted for robustness.
     for (const entry of parsed.documents ?? []) {
       const fileId = String(entry.fileId ?? "");
       const role = String(entry.role ?? "").toLowerCase() as DocumentRole;
