@@ -163,6 +163,14 @@ Given(
   },
 );
 
+Given(
+  "a model that triages {string} as archive but cites files by number",
+  function (this: HarnessWorld, fileId: string) {
+    this.fake.triageRoles.set(fileId, "archive");
+    this.fake.triageByNumber = true;
+  },
+);
+
 Then("the model was asked to triage {int} times", function (this: HarnessWorld, count: number) {
   assert.equal(this.fake.requestsFor("triage").length, count);
 });

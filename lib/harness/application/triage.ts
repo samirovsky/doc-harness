@@ -3,6 +3,7 @@ import { estimateTokens } from "../domain/tokens";
 import { extractJsonObject } from "./json";
 import type { LlmGateway, Logger } from "./ports";
 import { TRIAGE_SYSTEM, triageUserPrompt, type CaseContext } from "./prompts";
+import { normalizeEvidence } from "./reconcile";
 
 export type DocumentRole = "core" | "reference" | "archive";
 
@@ -37,6 +38,25 @@ export function documentProfile(document: CorpusDocument): string {
 }
 
 const ROLES = new Set<DocumentRole>(["core", "reference", "archive"]);
+
+/**
+ * Maps a model-cited document reference onto a real fileId: exact or near-miss
+ * ids (case, extension), or a bare number, matched to the file with that
+ * leading number ("16" → "16_x.csv") or else to the 1-based profile position.
+ */
+export function resolveFileReference(raw: unknown, fileIds: string[]): string | undefined {
+  const text = String(raw ?? "").trim();
+  if (!text) return undefined;
+  const named = normalizeEvidence([text], fileIds)[0];
+  if (named) return named;
+  if (/^\d+$/.test(text)) {
+    const number = Number(text);
+    const byPrefix = fileIds.filter((fileId) => Number(fileId.match(/^(\d+)/)?.[1] ?? NaN) === number);
+    if (byPrefix.length === 1) return byPrefix[0];
+    if (byPrefix.length === 0 && number >= 1 && number <= fileIds.length) return fileIds[number - 1];
+  }
+  return undefined;
+}
 
 /**
  * One model call classifies document authority. Fail-open by design: any
@@ -75,11 +95,14 @@ export async function triageDocuments(
     // Compact form: {"archive":[ids],"reference":[ids]}; unlisted documents stay core.
     for (const role of ["reference", "archive"] as const) {
       const ids = Array.isArray(parsed[role]) ? (parsed[role] as unknown[]) : [];
-      for (const id of ids) if (roles.has(String(id))) roles.set(String(id), role);
+      for (const id of ids) {
+        const fileId = resolveFileReference(id, fileIds);
+        if (fileId) roles.set(fileId, role);
+      }
     }
     // Verbose form, accepted for robustness.
     for (const entry of parsed.documents ?? []) {
-      const fileId = String(entry.fileId ?? "");
+      const fileId = resolveFileReference(entry.fileId, fileIds) ?? "";
       const role = String(entry.role ?? "").toLowerCase() as DocumentRole;
       if (!roles.has(fileId) || !ROLES.has(role)) continue;
       roles.set(fileId, role);

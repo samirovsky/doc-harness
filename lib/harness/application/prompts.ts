@@ -20,7 +20,7 @@ Assign each document exactly one role:
 
 Also identify the case context: the main subject (organization) and the as-of date the current records are reported through (the latest close / "current through" date), as YYYY-MM-DD, or null if unclear.
 
-Reply with JSON only, listing ONLY the non-core documents (every unlisted document is core):
+Reply with JSON only, listing ONLY the non-core documents by their exact fileId strings as written after "###" (every unlisted document is core):
 {"caseContext":{"subject":string|null,"asOfDate":string|null},"archive":[fileId,...],"reference":[fileId,...]}`;
 
 export function triageUserPrompt(profiles: string): string {

@@ -28,6 +28,8 @@ export class FakeModel implements LlmGateway {
   triageRoles = new Map<string, "core" | "reference" | "archive">();
   /** When true, the first triage call archives nothing (simulates an implausible triage). */
   firstTriageEmpty = false;
+  /** When true, triage lists files by their leading number (e.g. 2 for "02_x.pdf"). */
+  triageByNumber = false;
   agentBehaviors = new Map<string, AgentBehavior>();
   defaultAgent: AgentBehavior = { kind: "fail" };
   failAll = false;
@@ -81,7 +83,9 @@ export class FakeModel implements LlmGateway {
   private triagePayload(request: LlmRequest) {
     const fileIds = (request.meta?.fileIds as string[]) ?? [];
     const empty = this.firstTriageEmpty && this.requestsFor("triage").length === 1;
-    const withRole = (role: string) => (empty ? [] : fileIds.filter((fileId) => this.triageRoles.get(fileId) === role));
+    const cite = (fileId: string) => (this.triageByNumber ? Number(fileId.match(/^\d+/)?.[0] ?? NaN) : fileId);
+    const withRole = (role: string) =>
+      empty ? [] : fileIds.filter((fileId) => this.triageRoles.get(fileId) === role).map(cite);
     return {
       caseContext: { subject: "test subject", asOfDate: null },
       archive: withRole("archive"),

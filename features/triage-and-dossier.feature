@@ -51,3 +51,17 @@ Feature: Authority triage and dossier building
     When the harness answers the playbook
     Then the model was asked to triage 2 times
     And the document "filler_00.pdf" was triaged as archive
+
+  Scenario: Triage answers that cite files by their number are understood
+    Given a data room with documents:
+      | fileId               | content                                                            |
+      | 01_current.pdf       | Controlled register current through the close. Deductible 75,000  |
+      | 02_archive_old.pdf   | Archive series. Not current case authority. Deductible 10,000      |
+    And a playbook with questions:
+      | questionId | answerType | question                          |
+      | q_ded      | number     | What is the current deductible?   |
+    And a model that triages "02_archive_old.pdf" as archive but cites files by number
+    And a model that answers every question with a plausible value
+    When the harness answers the playbook
+    Then the document "02_archive_old.pdf" was triaged as archive
+    And the model was asked to triage 1 times

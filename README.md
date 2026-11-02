@@ -131,7 +131,7 @@ npm run dev ─► Vite plugin docHarness() (Node)                       answerC
 
 **Clean architecture.** `domain/` (pure: document model, canonicalization, arithmetic, BM25, table-query DSL, output validator, cost ledger) ← `application/` (use cases + ports: `LlmGateway`; decorators for metering and hedging) ← `infrastructure/` (parsers, OCR, OpenRouter adapter, corpus cache) ← composition roots (`lib/candidate/answer.ts`, `scripts/evaluate.ts`). The dependency rule, workerd-safety, the fixed model/provider policy and "no practice literals in the source" are executable BDD scenarios.
 
-**BDD.** The behaviour was specified first as Gherkin features (`features/`: output contract, canonicalization, ingestion, triage and dossier, escalation, cost, batching and latency, architecture, self-consistency, the live practice gate), run red, then implemented layer by layer. 75 offline scenarios use a scripted fake model, so they are fast, deterministic and free.
+**BDD.** The behaviour was specified first as Gherkin features (`features/`: output contract, canonicalization, ingestion, triage and dossier, escalation, cost, batching and latency, architecture, self-consistency, the live practice gate), run red, then implemented layer by layer. 76 offline scenarios use a scripted fake model, so they are fast, deterministic and free.
 
 **Parsing.** I wrote small, format-specific readers rather than using a generic "file to text" tool, because structure (tables, slides, sheets) carries meaning.
 - **PDF** (`unpdf`): text runs regrouped into lines by baseline, with ` | ` inserted at column gaps, so every table row stays on one line.
@@ -153,7 +153,7 @@ Counting and summing are done by code (`calculate`, `query_table`), never by the
 ## Precision, cost and speed
 
 **Precision.** These are the levers that took the practice score from 45/50 to 50/50:
-- **Authority triage.** Self-declared archives (15 of 30 files, ~80% of tokens) never reach the answer prompt. Triage fails open. A triage that archives nothing while the corpus overflows the prompt budget is retried once; this happened in 1 of 35 runs and otherwise floods the prompt with distractors.
+- **Authority triage.** Self-declared archives (15 of 30 files, ~80% of tokens) never reach the answer prompt. Triage fails open. File references in the triage answer are resolved robustly (exact id, near-miss, or the file's leading number such as `16`, which the model sometimes uses). As a safety net, a triage that archives nothing while the corpus overflows the prompt budget is retried once.
 - **Generic evidence rules**, with no case literals:
   - authority, and supersession by later approved amendments or final closes;
   - effective dates vs filing dates;

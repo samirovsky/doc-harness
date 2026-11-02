@@ -86,3 +86,15 @@ describe("estimateAbandoned", () => {
     assert.equal(unpriced.costUsd, null);
   });
 });
+
+describe("resolveFileReference", () => {
+  it("resolves exact, near-miss and numeric document references", async () => {
+    const { resolveFileReference } = await import("@/lib/harness/application/triage");
+    const ids = ["01_ledger.csv", "02_memo.pdf", "16_archive.csv"];
+    assert.equal(resolveFileReference("02_MEMO", ids), "02_memo.pdf");
+    assert.equal(resolveFileReference(16, ids), "16_archive.csv");
+    assert.equal(resolveFileReference("1", ids), "01_ledger.csv");
+    assert.equal(resolveFileReference(99, ids), undefined);
+    assert.equal(resolveFileReference(2, ["alpha.pdf", "beta.pdf"]), "beta.pdf");
+  });
+});
