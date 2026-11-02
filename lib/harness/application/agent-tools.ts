@@ -17,7 +17,7 @@ const FINAL_ANSWER_SPEC: ToolSpec = {
   parameters: {
     type: "object",
     properties: {
-      value: { description: "number | string | boolean | null, canonical per the question's answerType" },
+      value: { type: ["number", "string", "boolean", "null"], description: "canonical per the question's answerType" },
       calc: { type: ["string", "null"], description: "arithmetic expression that produced a derived number, else null" },
       evidenceFileIds: { type: "array", items: { type: "string" }, description: "decisive document ids; empty only if value is null" },
       confidence: { type: "number", description: "0..1" },
